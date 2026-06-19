@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+*.egg-info/
+dist/
+build/
+
+# Data files
+data/raw/
+data/processed/
+*.csv
+*.xlsx
+*.dta
+*.RData
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# Results / Output
+results/
+output/
+figures/*.pdf
+figures/*.png
+tables/*.tex
+
+# Logs
+*.log
+
+# Sensitive
+.env
+credentials.json

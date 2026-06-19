@@ -1,0 +1,121 @@
+================================================================================
+RESEARCH PLAN UPDATE: COMPLETION REPORT
+================================================================================
+Project: Wildfire Impact on Poverty & Net Migration (Expanded National Study)
+Date: 2026-06-18
+Version: 2.0
+
+================================================================================
+DELIVERABLES COMPLETED
+================================================================================
+
+1. RESEARCH_PLAN.md (UPDATED)
+   ✓ Expanded geographic scope: Western US → All lower-48 states (~3,100 counties)
+   ✓ Treatment window: 2013–2021 (g=2017, g=2022 cohorts)
+   ✓ Analysis period: 2007, 2012, 2017, 2022 (ACS 5-year census periods)
+   ✓ Mechanism analysis section: Net-migration as mediator (new §2, §4.2)
+   ✓ Treatment/control definition: Replicates wildfire-finance design
+   ✓ Extensive + intensive margin specifications
+   ✓ Regression adjustment methodology (PS-IPW + covariate adjustment)
+   ✓ Pre-trend testing: Magnitude/visual inspection (Roth 2022 critique)
+   ✓ Smoke buffer: 100 km baseline (robustness: 50, 150 km)
+   ✓ Event-study window: h ∈ {-3, ..., 7}
+   ✓ Robustness tests: 6+ organized by identification threat
+   ✓ Heterogeneous effects: Subgroups marked exploratory
+   ✓ Paper structure: 7 sections with detailed outlines
+   ✓ Pre-analysis plan: Mandatory (§6); specification freeze
+   ✓ Success criteria & checkpoints (§8)
+   ✓ Known risks & mitigations (§9)
+   ✓ Next steps timeline (§11)
+
+2. CLAUDE.md (UPDATED)
+   ✓ Project overview: Expanded scope, treatment window, key innovation (mediation)
+   ✓ Core design: National sample, PS-IPW matching on WFP 2012
+   ✓ Data sources: Consolidated references to IPUMS ACS, MTBS, WFP 2012
+   ✓ Methodological defaults: C&S, PS-IPW, robustness organization
+   ✓ Writing & output: 7-section structure, target journals
+   ✓ Skill sequence: /deep-research → /academic-paper → /academic-paper-reviewer
+   ✓ Code architecture: Updated folder structure (code/ not src/)
+   ✓ ACS disclosure avoidance handling documented
+
+3. UPDATED_PLAN_SUMMARY.md (NEW)
+   ✓ 10 major changes implemented with rationales
+   ✓ Updated outcomes (primary order)
+   ✓ Updated writing plan (7 sections)
+   ✓ Timeline (unchanged from original)
+   ✓ Key architectural decisions
+   ✓ Critical path to start
+   ✓ What didn't change (inherited features)
+
+4. PRE_ANALYSIS_CHECKLIST.md (NEW)
+   ✓ 7 phases with actionable checklist items
+   ✓ Phase 0: Pre-analysis setup (PAP registration, /deep-research)
+   ✓ Phase 1: Data acquisition & cleaning (11 data sources, 6 processing scripts)
+   ✓ Phase 2: Propensity-score matching & balance (2 R scripts)
+   ✓ Phase 3: Event-study & DiD estimation (3 analyses: main, event-study, mediation)
+   ✓ Phase 4: Robustness & heterogeneity (6+ tests, subgroup analysis)
+   ✓ Phase 5: Output & visualization (5 tables, 4 figures, 300 DPI)
+   ✓ Phase 6: Manuscript drafting (7-section structure with detailed outlines)
+   ✓ Phase 7: Final deliverables (replication package, Zenodo, submission)
+
+================================================================================
+KEY CHANGES IMPLEMENTED (Per Your Feedback)
+================================================================================
+
+Feedback 1: Expand study area to lower-48
+   ✓ Geographic scope: ~500 Western counties → ~3,100 national counties
+   ✓ Implications: Larger control pool, better common support for PS-IPW
+
+Feedback 2: Add mechanism analysis on net-migration + mediation effect
+   ✓ New outcome: Net-migration rate (ACS 5-year residence change)
+   ✓ New section: Mediation analysis (§4.2) decomposing income loss vs. compositional effects
+   ✓ Interpretation: Direct effect (ATT on poverty) vs. indirect (migration-mediated)
+
+Feedback 3: Include extensive AND intensive margin
+   ✓ Extensive margin: Any fire ≥1,000 acres (binary treatment)
+   ✓ Intensive margin: Fire count and total acres burned (dose-response)
+   ✓ Both reported in Table 3
+
+Feedback 4: Use regression adjustment
+   ✓ Methodology: PS-IPW weights + covariate adjustment (WFP quintile + baseline covs)
+   ✓ Transparent, replicable, avoids manual matching bias
+
+Feedback 5: Follow wildfire-finance treatment/control definition
+   ✓ Treatment window: 2013–2021 (g=2017, g=2022 cohorts)
+   ✓ Matching variable: WFP 2012 (predetermined, finalized before 2013)
+   ✓ Control group: Never-treated + smoke-excluded (100 km)
+   ✓ Study period: 2007–2022 (matching wildfire-finance ACS window)
+
+Feedback 6–13: All recommended actions implemented
+   ✓ Action 9: Smoke buffer baseline 100 km, robustness 50/100/150 km
+   ✓ Action 10: Event-study window -3 to +7 (vs. -5 to +5)
+   ✓ Action 11: Treatment window 2013–2021 only (no pre-2012, post-2020)
+   ✓ Action 12: Robustness organized by identification threat (6+ tests)
+   ✓ Action 13: PAP now mandatory (§6), not optional
+
+================================================================================
+STRUCTURE & TIMELINE (UNCHANGED)
+================================================================================
+
+Weeks 1–3:   Data acquisition & cleaning
+Week 4:      Propensity-score matching & balance diagnostics
+Weeks 5–7:   Event-study estimation + robustness tests + heterogeneity
+Week 8:      Output tables & figures
+Weeks 9–10:  Manuscript drafting & peer review
+Weeks 11+:   Revision & submission
+
+================================================================================
+STATUS: READY FOR EXECUTION
+================================================================================
+
+Pending Actions:
+  1. Collaborator sign-off on expanded scope & mediation design
+  2. Register PAP on OSF (locks specifications)
+  3. Run /deep-research to populate bibliography
+
+Ready to Begin:
+  • Data assembly (Phase 1)
+  • Code implementation (all scripts specified in checklist)
+  • Estimation pipeline (Phases 2–4)
+
+================================================================================

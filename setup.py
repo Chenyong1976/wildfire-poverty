@@ -1,0 +1,40 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="wildfire-poverty-analysis",
+    version="0.1.0",
+    description="Causal analysis of wildfire impacts on poverty and economic outcomes",
+    author="Your Name",
+    author_email="your.email@example.com",
+    packages=find_packages(),
+    python_requires=">=3.9",
+    install_requires=[
+        "pandas>=1.5.0",
+        "polars>=0.20.0",
+        "numpy>=1.23.0",
+        "geopandas>=0.13.0",
+        "shapely>=2.0.0",
+        "pyproj>=3.4.0",
+        "rasterio>=1.3.0",
+        "statsmodels>=0.14.0",
+        "linearmodels>=5.0",
+        "scipy>=1.10.0",
+        "scikit-learn>=1.3.0",
+        "matplotlib>=3.6.0",
+        "seaborn>=0.12.0",
+        "plotly>=5.13.0",
+        "contextily>=1.3.0",
+        "folium>=0.14.0",
+        "pytest>=7.2.0",
+        "black>=23.0.0",
+        "ruff>=0.1.0",
+    ],
+    extras_require={
+        "dev": [
+            "jupyter>=1.0.0",
+            "notebook>=6.5.0",
+            "ipykernel>=6.20.0",
+            "ipywidgets>=8.0.0",
+        ],
+    },
+)
