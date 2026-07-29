@@ -49,6 +49,14 @@ def calculate_pre2012_fire_history(mtbs: gpd.GeoDataFrame, counties: gpd.GeoData
     Returns:
         DataFrame with GEOID, fire_count, acres_burned for 1984-2011
     """
+    # Standardize column names
+    if 'YEAR' in mtbs.columns and 'year' not in mtbs.columns:
+        mtbs = mtbs.copy()
+        mtbs['year'] = mtbs['YEAR']
+    if 'ACRES' in mtbs.columns and 'acres' not in mtbs.columns:
+        mtbs = mtbs.copy()
+        mtbs['acres'] = mtbs['ACRES']
+
     # Filter to 1984-2011
     fires_pre = mtbs[(mtbs['year'] >= 1984) & (mtbs['year'] <= 2011)].copy()
     print(f"Fires 1984-2011: {len(fires_pre):,}")
@@ -68,14 +76,10 @@ def calculate_pre2012_fire_history(mtbs: gpd.GeoDataFrame, counties: gpd.GeoData
     # Spatial join
     fire_county = gpd.sjoin(fires_pre, counties[['GEOID', 'geometry']], how='left')
 
-    # Aggregate by county
-    history = fire_county.groupby('GEOID').agg({
-        'OBJECTID': 'count',  # Fire count
-        'acres': 'sum',        # Total acres
-    }).reset_index()
-
-    history.columns = ['GEOID', 'pre2012_fire_count', 'pre2012_acres_burned']
-    history['pre2012_fire_count'] = history['pre2012_fire_count'].astype(int)
+    # Aggregate by county (count rows, sum acres)
+    history = fire_county.groupby('GEOID').size().reset_index(name='pre2012_fire_count')
+    acres_by_county = fire_county.groupby('GEOID')['acres'].sum().reset_index(name='pre2012_acres_burned')
+    history = history.merge(acres_by_county, on='GEOID')
 
     # Add counties with no fires
     all_geoids = set(counties['GEOID'])

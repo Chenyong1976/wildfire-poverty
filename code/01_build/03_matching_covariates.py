@@ -149,7 +149,7 @@ def main():
     out_file = out_dir / "matching_covariates_2012.parquet"
 
     covariates.to_parquet(out_file, index=False)
-    print(f"\n✓ Saved: {out_file}")
+    print(f"\n[OK] Saved: {out_file}")
     print(f"  Shape: {covariates.shape}")
 
 

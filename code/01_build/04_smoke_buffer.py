@@ -22,6 +22,10 @@ def load_mtbs_and_counties():
 
     mtbs = gpd.read_file(shp_file)
 
+    # Standardize column names
+    if 'YEAR' in mtbs.columns and 'year' not in mtbs.columns:
+        mtbs['year'] = mtbs['YEAR']
+
     # Counties
     county_shp = list((raw_dir / "county_shapefiles").glob("*.shp"))[0]
     counties = gpd.read_file(county_shp)
