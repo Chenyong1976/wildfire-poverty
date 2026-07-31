@@ -1,7 +1,12 @@
 # Empirical Design: Wildfire Impact on Poverty
 
-**Last Updated**: 2026-07-30  
-**Design Status**: Ready for critical assessment (Iteration 1/4)
+**Last Updated**: 2026-07-30 (Iteration 2 revisions complete — all critical assessment issues addressed)
+
+**Design-level warnings (flagged during critical review)**:
+1. **Only one pre-treatment period per cohort** — with ACS periods 2012/2017/2022, each cohort has h=−1 and h=0 (or h=+1). Pre-trend testing is minimal; parallel trends credibility depends primarily on WFP matching, not validated pre-trends.
+2. **ACS 2017 window contamination for g=2022** — The 2017 ACS (2013–2017 window) overlaps the treatment onset for g=2022 tracts (first fire 2017–2021). The "pre-treatment" period for g=2022 is not cleanly pre-treatment. Design must acknowledge this and restrict g=2022 use accordingly.
+3. **Burned share preferred over any-overlap for primary treatment** — Binary "any intersection" is coarse; burned share (% of tract area within MTBS perimeter) should be the primary continuous measure with a minimum-overlap threshold for the binary indicator.
+4. **Mediation is descriptive decomposition, not causal mediation** — Sequential regression cannot identify causal mediation without a no-unmeasured-confounding assumption for the mediator-outcome path. Label accordingly throughout.
 
 ---
 
@@ -13,11 +18,23 @@
 | Dimension | Definition | Notes |
 |-----------|-----------|-------|
 | **Units** | Census tracts, Census 2010 definition | ~70,000 tracts lower-48 US; after MOE screening & pop ≥500: ~40,000–50,000 tracts |
-| **Time periods** | ACS 5-year estimates | 2012 (baseline, 2008–2012 window), 2017 (2013–2017), 2022 (2018–2022) |
-| **Unbalanced**: | Not all tracts in all periods | ACS tract data sparse in earlier periods; panel becomes denser over time |
+| **Time periods** | ACS 5-year estimates ONLY | 2012 (baseline, 2008–2012 window), 2017 (2013–2017), 2022 (2018–2022) |
 | **Treatment cohorts** | Staggered | g=2017 (first fire 2013–2016), g=2022 (first fire 2017–2021), g=0 (never-treated) |
 | **N observations** | ~120,000–150,000 | 40k–50k tracts × 3 periods (accounting for missing data) |
 | **Control group** | Never-treated, smoke-excluded | Tracts with no MTBS fires 2013–2021, outside 100 km buffer |
+
+**CRITICAL TEMPORAL LIMITATION — Disclose in paper:**
+With only three ACS periods, each cohort has at most **one pre-treatment observation** (h=−1) and **one or two post-treatment observations** (h=0, h=+1). This severely constrains pre-trend testing:
+
+| Cohort | Pre-treatment period | Post-treatment periods | Event-study h values |
+|--------|---------------------|----------------------|----------------------|
+| g=2017 (fire 2013–2016) | 2012 ACS (h=−1) | 2017 ACS (h=0), 2022 ACS (h=+1) | h ∈ {−1, 0, +1} |
+| g=2022 (fire 2017–2021) | 2017 ACS (h=−1) | 2022 ACS (h=0) | h ∈ {−1, 0} |
+
+With a single pre-period, the event-study pre-trend coefficient $\beta_{h=-1}$ is **normalized to zero by construction** (C&S uses h=−1 as the reference period). Effectively there are **zero degrees of freedom for pre-trend testing**. Parallel trends credibility must rest entirely on (a) the WFP raster matching argument and (b) the falsification/placebo tests described in §5. This must be disclosed prominently in the paper's Empirical Strategy and Limitations sections.
+
+**ACS window contamination for g=2022 (Critical):**
+The 2017 ACS (window 2013–2017) is used as the **pre-treatment baseline** for g=2022 tracts. However, the g=2022 treatment window begins in 2017 — meaning fires occurring in 2017 are captured partly within the 2017 ACS averaging window. For tracts with fires in 2017, the "pre-treatment" 2017 ACS already includes the fire year. **Recommended resolution**: Restrict g=2022 inference to tracts with first fire in 2018–2021 (not 2017), making the 2017 ACS a genuinely pre-treatment period. Report g=2017 as the primary cohort; treat g=2022 as secondary/robustness.
 
 ### Data Quality Screen (Rural Focus)
 - **ACS 5-year estimates only**: Restrict to 2012, 2017, 2022 (no 3-year or 1-year estimates; unreliable for rural tracts where fires concentrate)
@@ -29,11 +46,22 @@
 
 ## 2. Wildfire Exposure Measures
 
-### Extensive Margin (Binary Treatment)
-**Primary measure**: Tract-fire intersection
-- **Treatment**: Tract = 1 if tract polygon intersects MTBS fire polygon (≥1,000 acres), 0 otherwise
-- **Timing**: First large fire in 2013–2021 defines treatment cohort (g=2017 or g=2022)
-- **Spatial definition**: Any overlap of tract boundary with MTBS perimeter counts as treated
+### Primary Measure: Burned Share (Continuous; Preferred)
+
+**REVISED from prior design**: The prior design treated any tract-fire overlap as "treated." This is too blunt — a tract 99% outside the fire perimeter would count as treated. The **burned share** (% of tract area within MTBS fire polygon) is preferred as the primary exposure measure because it is continuous, proportional to exposure, and free from the threshold-choice problem.
+
+**Burned share definition**:
+- $\text{BurnedShare}_i$ = area of intersection(tract $i$, MTBS fire polygon) / area(tract $i$) × 100
+- Range: 0–100% (values > 100% truncated; can occur if fire spans tract)
+- **Minimum threshold for binary indicator**: Tracts with BurnedShare ≥ 10% classified as "treated" in binary specification (threshold choice is a registered decision; robustness at 5%, 25%)
+- **Rationale**: 10% threshold avoids classifying tracts that were barely grazed by a fire perimeter as treated; 5% and 25% in robustness
+
+### Extensive Margin (Binary Treatment — Secondary)
+**Derived from burned share**:
+- **Treatment**: Tract = 1 if BurnedShare ≥ 10%, 0 otherwise
+- **Timing**: First qualifying fire in 2013–2021 defines treatment cohort
+- **Spatial definition**: Minimum 10% of tract area burned (NOT any-overlap)
+- **Robustness**: Vary minimum threshold (5%, 10%, 25%)
 
 ### Intensive Margin (Dose-Response)
 
@@ -147,24 +175,32 @@ where $X$ includes:
 ## 5. Identifying Assumptions & Validity Tests
 
 ### Core Assumption: Conditional Parallel Trends (C&S 2021)
+
 **Statement**: Given covariates $X_{i,2012}$ and PS-IPW matching, treated and never-treated tracts would follow parallel poverty trends absent wildfire treatment.
 
-**Interpretation**: Post-matching, fire location is unconfounded conditional on observed baseline covariates (WFP hazard, fire history, poverty, income, demographics).
+**Why WFP enables this assumption (key identification argument)**:
+WFP 2012 is the USFS's best pre-treatment measure of a tract's structural fire risk — terrain, vegetation, fuel loads, and climate conditions finalized before 2013. Conditional on WFP hazard class and pre-2013 fire history, the timing of when a tract first experienced a large fire after 2013 is plausibly driven by idiosyncratic ignition events (lightning, human accident) rather than trending economic characteristics. This is the heart of the identification argument: **WFP controls for structural fire vulnerability; residual variation in fire timing is quasi-random**.
+
+This argument does NOT hold unconditionally — high-WFP counties are systematically poorer, more rural, and more economically vulnerable than low-WFP counties. The matching strategy conditions on WFP and baseline economic characteristics precisely because of this correlation.
+
+**Limitation to state clearly**: The study has only one pre-treatment ACS period per cohort (2012 for g=2017; 2017 for g=2022). The standard h=−1 reference normalization leaves **zero pre-trend coefficients to inspect**. Parallel trends cannot be empirically tested via event-study pre-trends in the usual sense. The assumption must instead be defended argumentatively via WFP matching and through the falsification tests below.
 
 ### Threats & Tests
 
-| Threat | Test | Expected Result | Interpretation |
-|--------|------|-------|------------|
-| **Differential pre-trends** | Estimate $\beta_h$ for h<0 (pre-treatment periods) | $\beta_h ≈ 0$ with 95% CI excluding zero | If pre-trends negligible, parallel trends plausible |
-| **Anticipatory behavior** | Lead specification: regress outcome on leads of treatment | Leads coefficients ≈ 0 | If residents pre-adjust before fire, leads will be nonzero |
-| **Placebo/falsification** | Assign fires to pre-2013 years; estimate C&S ATT | ATT ≈ 0 | If result zero, confounding from pre-treatment trends unlikely |
-| **Alternative exposure measure** | Replace binary with continuous (acres, WFP intensity) | Results scale proportionally | If dose-response holds, stronger causal evidence |
-| **Alternative control group** | Exclude never-treated with pre-2013 fires (stricter definition) | ATT similar magnitude | If stricter control group gives same result, selection bias not driving estimates |
-| **Smoke spillover** | Vary 100 km buffer (50, 150 km exclusion radii) | ATT stable across radii | If sensitive to buffer, smoke spillover threatens identification |
-| **Migration/compositional change** | Mediation analysis: ATT on migration + indirect effect | Decompose total ATT | Separates income effects from migration effects |
-| **Sample selection** | Vary MOE threshold (20%, 30%, 40%) by urbanicity | ATT stable in rural and urban subsamples | If results differ sharply by MOE threshold, measurement error biases estimates |
-| **Regional confounds** | Add census-division × period FE to specification | ATT similar to baseline | If regional controls change results, regional shocks confound |
-| **Spatial autocorrelation** | Test residual spatial correlation; use spatial clustering for SE | Report Moran's I; cluster by county | If high autocorrelation, standard error estimates understated |
+| Threat | Test | Expected Result | Interpretation | Priority |
+|--------|------|-------|------------|------|
+| **Differential pre-trends** | With only 1 pre-period per cohort, cannot run a standard multi-period pre-trend test. Instead: (a) Compare baseline covariate balance after PS-IPW; (b) Run falsification placebo below | See falsification test | The WFP matching argument must substitute for direct pre-trend evidence | **Critical — disclose in paper** |
+| **Anticipatory behavior** | Lead specification: regress 2012 outcome on 2017 fire indicator (for g=2017 tracts) | Near-zero coefficient on lead | If near-zero, residents did not preemptively adjust in advance of fire | High |
+| **Placebo/falsification** | Assign fires to pre-2013 dates; estimate ATT on pre-2013 ACS outcomes | ATT ≈ 0 | If placebo ATT near zero, pre-existing trend differences unlikely to drive results | High |
+| **ACS window contamination (g=2022)** | Restrict g=2022 cohort to tracts with first fire 2018–2021 only; compare ATT to full g=2022 | ATT similar in restricted sample | If similar, 2017 window contamination not driving g=2022 estimates | **Critical for g=2022** |
+| **Alternative exposure measure** | Replace binary with burned share (%) and log acres burned | Results scale proportionally | Dose-response consistency strengthens causal claim | High |
+| **Burn threshold sensitivity** | Vary minimum burned share: 5%, 10% (baseline), 25% | ATT stable across thresholds | If sensitive, treatment classification drives results | Medium |
+| **Alternative control group** | Exclude never-treated with any pre-2013 fire history | ATT similar magnitude | Stricter control group tests if prior fire exposure confounds | High |
+| **Smoke spillover** | Vary 100 km buffer (50, 150 km exclusion radii) | ATT stable across radii | If sensitive to buffer, smoke spillover via economic channels threatens identification | High |
+| **Migration/compositional change** | Descriptive decomposition via ATT on migration + sequential regression | Decompose total ATT | Separates income effects from compositional effects; note this is not causal mediation | Medium |
+| **Sample selection** | Vary MOE threshold (20%, 30%, 40%) by urbanicity | ATT stable in rural and urban subsamples | If sharp rural-urban divergence, rural MOE measurement error may bias estimates | Medium |
+| **Regional confounds** | Add state × period FE; then census-division × period FE | ATT similar to baseline | If regional controls substantially change results, regional shocks confound | High |
+| **Spatial autocorrelation** | Cluster SE at county level; report Moran's I of residuals | Moran's I ≈ 0 after clustering | If still autocorrelated, consider spatial HAC or multi-way clustering | Medium |
 
 ---
 
@@ -278,55 +314,56 @@ Tract-level poverty rate reflects both:
 1. **Individual income changes**: Residents in tract experience income loss (welfare loss)
 2. **Compositional change**: Low-income residents leave, high-income move in (mechanical poverty reduction without welfare gain)
 
-### Solution: Mediation Analysis Framework
+### Solution: Descriptive Decomposition Framework (Not Causal Mediation)
+
+**Critical methodological note**: This is a **descriptive decomposition**, not causal mediation. The sequential regression approach (Baron-Kenny) can recover causal mediation only if the migration-to-poverty path is free of unmeasured confounders. There are plausible confounders (e.g., regional economic shocks that simultaneously drive migration and poverty independently of the fire). We therefore label this a decomposition and interpret the indirect effect as an upper bound on compositional change, not a causal estimate.
 
 #### Step 1: Estimate Total Effect
 $$\text{Poverty}_{i,t} = \alpha_i + \lambda_t + \sum_{h} \beta_h^{\text{pov}} \cdot \mathbb{1}[g_i = t-h] + X \gamma + \epsilon$$
-- Estimand: $\text{ATT}^{\text{pov}}$ (total effect on poverty rate)
+- Estimand: $\text{ATT}^{\text{pov}}$ (total reduced-form effect on tract poverty rate)
 
-#### Step 2: Estimate Effect on Mediator
+#### Step 2: Estimate Effect on Migration
 $$\text{Net-Migration}_{i,t} = \alpha_i + \lambda_t + \sum_{h} \beta_h^{\text{mig}} \cdot \mathbb{1}[g_i = t-h] + X \gamma + \epsilon$$
-- Estimand: $\text{ATT}^{\text{mig}}$ (effect on net-migration rate)
+- Estimand: $\text{ATT}^{\text{mig}}$ (effect on 5-year net-migration rate)
 
-#### Step 3: Estimate Mediator→Outcome Regression
+#### Step 3: Partial-Out Migration from Poverty
 $$\text{Poverty}_{i,t} = \alpha_i + \lambda_t + \sum_{h} \beta_h^{\text{pov,cond}} \cdot \mathbb{1}[g_i = t-h] + \gamma \cdot \text{Net-Migration}_{i,t} + X \gamma' + \epsilon$$
-- Estimand: $\gamma$ (effect of migration on poverty, holding fire treatment constant)
+- Estimand: $\gamma$ (association of migration with poverty, conditional on fire treatment; **not causal path coefficient**)
 
-#### Step 4: Decomposition
-- **Indirect effect** (compositional): $\text{ATT}^{\text{mig}} \times \gamma$ (how much of poverty change driven by migration)
-- **Direct effect** (income loss): $\text{ATT}^{\text{pov}} - \text{Indirect effect}$ (poverty change not mediated by migration)
+#### Step 4: Accounting Decomposition
+- **Migration-associated component**: $\text{ATT}^{\text{mig}} \times \gamma$ (fraction of poverty change associated with migration)
+- **Residual component**: $\text{ATT}^{\text{pov}} - \text{ATT}^{\text{mig}} \times \gamma$ (fraction of poverty change not associated with migration)
 
-#### Interpretation
-- **Large indirect effect**: Out-migration is key mechanism; poverty improvement reflects sorting, not welfare gains
-- **Large direct effect**: Income effects dominate; poverty increase reflects resident income losses
+#### Interpretation (with caveats)
+- **Large migration-associated component**: Consistent with out-migration as a compositional driver of tract poverty change; interpret cautiously as possible upper bound
+- **Large residual component**: Consistent with income effects on stayers; also possible that measured migration is an imperfect mediator
 
-**Caveat**: Mediation analysis relies on ACS migration measure (noisy, 5-year window); results exploratory
+**Data quality caveat**: ACS 5-year "residence 5 years ago" is noisy and imprecise for sparse rural tracts. All decomposition results should be labeled exploratory and presented with wide confidence intervals.
 
 ---
 
 ## 9. Critical Assessment Checkpoint
 
-**Iteration 1 Review Questions:**
+**Iteration 2 Review — Issues Found and Addressed:**
 
-1. **Identification threat not adequately addressed?** 
-   - Spatial spillover (smoke, commuting) controlled via geographic buffer; varies in robustness
-   - Regional shocks controlled via state×period FE; varies to division×period
-   - Selection bias on observables via PS-IPW raster matching; unobservables remain threat (flag in limitations)
+The following major issues were identified in Iteration 1 and have been corrected in this document:
 
-2. **Design choice questionable?**
-   - First-fire rule: Justified by C&S framework; captured as intensity margin
-   - ACS 5-year only: Necessary for rural validity; temporal coarseness acknowledged
-   - 100 km smoke buffer: Proxy only; varies in robustness
+1. **Pre-trend testing infeasible** *(addressed in §1 and §5)*
+   - With only 3 ACS periods, each cohort has exactly one pre-treatment observation (h=−1, normalized to 0 by C&S convention). Standard pre-trend testing cannot be conducted. The parallel trends assumption must rest primarily on the WFP raster matching strategy and placebo falsification. This is now clearly documented as a critical limitation rather than glossed over.
 
-3. **Sample power adequate?**
-   - Expected n=40k–50k tracts; ~10–15× county-level power
-   - Rural tracts have larger MOE but valid 5-year samples
-   - Adequate for overall ATT; subgroup power moderate (n~15k per major subgroup)
+2. **ACS 2017 window contamination for g=2022** *(addressed in §1)*
+   - The 2017 ACS (2013–2017 window) overlaps treatment onset for g=2022 tracts with first fires in 2017. Fix: restrict g=2022 to tracts with first qualifying fire 2018–2021. This restriction reduces g=2022 sample size; document explicitly.
 
-4. **Measurement error problematic?**
-   - ACS MOE documented; robustness varies threshold
-   - Migration variable (5-yr window) noisy; results labeled exploratory
-   - Fire severity unavailable; use binary + acres as proxy
+3. **Burned share preferred over any-overlap binary** *(addressed in §2)*
+   - Binary "any intersection" is too coarse for tracts that are only marginally touched by a fire perimeter. Primary treatment measure revised to burned share (% of tract area within MTBS perimeter), with 10% minimum threshold for the binary indicator. This reduces false positives in the treated group.
 
-**Proceed to empirical_design.md revision if major issues identified. Otherwise, move to paper_outline.md.**
+4. **Mediation labeled as causal when it is only descriptive** *(addressed in §8)*
+   - The sequential regression (Baron-Kenny) approach cannot recover causal mediation without a no-unmeasured-confounding assumption on the migration-to-poverty path. This assumption is not credibly satisfied. All mediation results are now labeled "descriptive decomposition" and interpreted as upper bounds, not causal path estimates.
+
+**Remaining open design questions (not yet resolved; flag in paper limitations):**
+- No fine-grained fire severity measure beyond MTBS binary and acres burned
+- Cannot distinguish in-migration from out-migration in ACS net-migration proxy
+- Long-term persistence (>7 years) is outside the current data window
+
+**Status**: Iteration 2 revisions complete. Proceed to paper_outline.md revision.
 

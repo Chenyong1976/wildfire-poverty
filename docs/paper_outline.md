@@ -2,7 +2,7 @@
 
 **Target Journals**: *Journal of Urban Economics*, *Regional Science and Urban Economics*, *American Economic Journal: Applied Economics*
 
-**Last Updated**: 2026-07-30
+**Last Updated**: 2026-07-30 (Revised after critical assessment)
 
 ---
 
@@ -17,18 +17,18 @@
 - Primary RQ: How do large wildfires causally affect poverty rates in census tracts?
 - Contribution 1: First national, tract-level study of fire-poverty causality
 - Contribution 2: Fine-grained spatial matching using 270m WFP raster (improved precision vs. county aggregates)
-- Contribution 3: Explicit mediation analysis on migration (welfare loss vs. compositional change)
+- Contribution 3: Explicit descriptive decomposition of migration vs. income-loss channels
 
 ### C. Identifying Variation
 - Staggered fire exposure across ~70,000 lower-48 census tracts (2013–2021)
-- Cohorts: g=2017 (fires 2013–2016), g=2022 (fires 2017–2021)
+- Cohorts: g=2017 (fires 2013–2016), g=2022 (fires 2018–2021)
 - Spatial matching on predetermined USFS WFP 2012 hazard raster (270m resolution)
 
 ### D. Preview of Results
-- [To be filled after estimation; sketch: "Exposure to large wildfire increases tract poverty rate by X percentage points in 3–5 years post-fire. Effect partially mediated by out-migration (Z% compositional, 100–Z% income loss)."]
+- [To be filled after estimation; sketch: "Exposure to large wildfire increases tract poverty rate by X percentage points in 3–5 years post-fire. Descriptive decomposition indicates Z% of the effect is associated with out-migration; (100−Z)% with resident income losses."]
 
 ### E. Roadmap
-- Data §II, empirical strategy §III, results §IV, mechanisms §V, robustness §VI, limitations & policy §VII
+- Institutional background §II; data §III; empirical strategy §IV; results §V; mechanisms §VI; robustness §VII; limitations & policy §VIII
 
 ### F. Literature Positioning (Tight, 4–5 papers)
 - Wildfire economics: [Boomhower 2019; Borgschulte et al. 2024; climate-disaster literature search targets]
@@ -38,7 +38,65 @@
 
 ---
 
-## II. Data & Sample (2–2.5 pages)
+## II. Institutional Background (1–1.5 pages)
+
+### A. The US Wildfire Landscape
+
+- Wildfire frequency and acres burned (1980–2022): NIFC data; long-run trend and recent extreme years
+- Geographic concentration: Western states dominate burned acreage; Southeast has high fire count but smaller fires; Eastern states comparatively rare large fires
+- MTBS coverage: ≥1,000 acres threshold; implication for study scope (large fires only)
+
+### B. Economic Pathways from Fire to Poverty
+
+- Direct destruction: residential and commercial property, infrastructure, timber
+- Labor market disruption: temporary unemployment, sector reallocation (tourism, agriculture, timber)
+- Housing market effects: housing destruction + post-fire rebuilding cost inflation; insurance market response
+- Smoke transport and indirect health/productivity costs (outside scope of this study; note)
+
+### C. Federal and State Disaster Relief Framework
+
+- **FEMA Individual Assistance (IA)**: Direct grants to households for housing repair and essential needs. Available after Presidential Disaster Declarations. County-level data from FEMA OpenFEMA. *Relevant to attenuation of income effects; discuss in policy implications.*
+- **FEMA Public Assistance (PA)**: Funding to state/local governments for infrastructure repair. Does not directly offset household income loss.
+- **SBA Disaster Loans**: Low-interest loans for households and businesses. Means-tested; require ability to repay. May not reach lowest-income households. *Relevant to heterogeneity by baseline income.*
+- **USDA Emergency Programs**: Agricultural emergency assistance; relevant for rural farming-dependent tracts.
+- *Note on data availability*: FEMA IA/PA and SBA loan data are available at county level from public APIs; tract-level assignment is not possible without individual-level records. This precludes including relief programs as a control variable; discuss as limitation.
+
+### D. Wildfire Hazard Potential (WFP) as a Policy Tool
+
+- USFS WFP 2012: Modeled landscape-level fire hazard (FSim + LANDFIRE inputs), 270m resolution, first published 2012
+- Predetermined before 2013 treatment window: based solely on pre-2013 fuel loads and fire weather models
+- Policy use: USFS Cohesive Strategy; state-level fuels management planning
+- Study use: Matching covariate and basis for conditional parallel trends assumption
+
+---
+
+## III. Literature Review (1–1.5 pages)
+
+*Note*: This section to be fully populated via `/deep-research` lit review. Placeholder below indicates structure and target papers.
+
+### A. Wildfire Economics and Property/Fiscal Impacts
+
+Prior work focuses on property value hedonic estimates and local government fiscal consequences. [Boomhower 2019 — wildfire risk and insurance market; Borgschulte et al. 2024 — labor market; wildfire-finance project findings — fiscal impacts of fires on local revenues.] These studies establish the plausibility of fire-to-economic-outcome pathways but do not estimate causal effects on household poverty.
+
+### B. Disaster Economics and Poverty
+
+Broader disaster economics literature examines poverty and income effects of hurricanes, floods, and droughts. [Identify 3–4 relevant papers in `/deep-research`.] These studies provide estimates of disaster income shocks but are limited by single-event designs, regional focus, or county-level spatial aggregation that masks within-area heterogeneity.
+
+### C. Displacement, Migration, and Poverty Dynamics
+
+Environmental shocks drive population displacement; the poverty implications depend on whether migrants are poorer or richer than stayers. [Blanchard-Katz; Boustan et al. on hurricanes and migration; climate migration literature.] This study extends this insight to wildfire-driven displacement, where migration patterns may differ from hurricane/flood contexts (different income profile of fire-affected areas; lower insurance penetration in rural West).
+
+### D. Causal Inference for Staggered Treatments
+
+Callaway & Sant'Anna (2021) and Sun & Abraham (2021) motivate the staggered DiD approach. [Roth (2022) on pre-testing.] Recent applications to disaster economics include [cite 1–2 examples from disaster DiD literature]. This study adapts the C&S framework to a setting with spatially clustered treatment and minimal pre-treatment periods — an application context not explicitly addressed in the methodological literature.
+
+### E. Gaps Addressed by This Study
+
+This paper fills three gaps: (1) no national, tract-level quasi-experimental estimate of wildfire poverty effects; (2) no study uses predetermined fine-resolution hazard rasters as the primary matching and identification variable; (3) no study explicitly decomposes poverty effects into income vs. migration-compositional channels.
+
+---
+
+## IV. Data & Sample (2–2.5 pages)
 
 ### A. Data Sources
 
@@ -65,10 +123,12 @@
 - Observation: 3 ACS periods × ~45,000 tracts ≈ **135,000 observations**
 
 #### Treatment Definition
-- **Extensive**: Tract intersects MTBS fire (≥1,000 acres), 2013–2021
-  - g=2017 cohort: first fire 2013–2016 (n ≈ 600–800 tracts)
-  - g=2022 cohort: first fire 2017–2021 (n ≈ 200–400 tracts)
+- **Extensive**: Tract burned share ≥10% (% of tract area within MTBS fire polygon), 2013–2021
+  - g=2017 cohort: first qualifying fire 2013–2016 (n ≈ 600–800 tracts)
+  - g=2022 cohort: first qualifying fire **2018–2021** (n ≈ 200–400 tracts; restricted to avoid ACS 2017 window contamination)
 - **Never-treated controls**: No fires 2013–2021, outside 100 km smoke buffer (n ≈ 39,000–49,000)
+
+*Note on g=2022 restriction*: Tracts with first qualifying fire in 2017 are excluded from the g=2022 cohort because the ACS 2017 (2013–2017 window) overlaps the treatment onset, contaminating the pre-treatment baseline. The g=2022 cohort thus covers fires 2018–2021 only.
 
 ### C. Summary Statistics
 
@@ -89,21 +149,25 @@
 
 ---
 
-## III. Empirical Strategy (2–2.5 pages)
+## V. Empirical Strategy (2–2.5 pages)
 
 ### A. Identification Strategy & Estimand
 
 **Design**: Staggered difference-in-differences (Callaway & Sant'Anna 2021)
 
 **Estimand**: Average treatment effect on treated (ATT)
-- Causal effect of large fire (≥1,000 acres) on poverty rate
+- Causal effect of large fire (≥1,000 acres, burned share ≥10%) on poverty rate
 - Relative to matched, never-treated comparison tracts
 - Conditional on baseline covariates (WFP hazard, demographics)
 
 **Event-study specification**:
 $$\text{Poverty}_{i,t} = \alpha_i + \lambda_t + \sum_{h \neq -1} \beta_h \cdot \mathbb{1}[g_i = t - h] + X_{i,2012} \gamma + \epsilon_{i,t}$$
 
-- $\beta_h$ = effect $h$ years relative to fire (h<0 pre-fire, h≥0 post-fire)
+- $\beta_h$ = effect $h$ periods relative to first fire (h<0 pre-fire, h≥0 post-fire)
+- **Data constraint**: With 3 ACS periods, the estimable $h$ values are:
+  - g=2017 cohort: h ∈ {−1, 0, +1} (pre: 2012; post: 2017 and 2022)
+  - g=2022 cohort: h ∈ {−1, 0} (pre: 2017; post: 2022)
+  - Standard pre-trend testing (requiring h ≤ −2) is **not feasible**; credibility of parallel trends rests on WFP matching and placebo falsification
 - Aggregate ATT: $\widehat{\text{ATT}} = \frac{1}{k} \sum_{h \geq 0} \beta_h$
 - Weighting: PS-IPW on raster-based WFP 2012 summaries, fire history, baseline covariates
 
@@ -125,27 +189,30 @@ $$\text{Poverty}_{i,t} = \alpha_i + \lambda_t + \sum_{h \neq -1} \beta_h \cdot \
 
 **Assumption**: Conditional on matching covariates, treated and control tracts would follow parallel poverty trends absent fire.
 
-**Pre-trend test** (visual, no p-values):
-- Estimate $\beta_h$ for h<0 (pre-fire periods)
-- Expected: $\beta_h ≈ 0$, 95% CIs near zero
-- Report: Event-study plot with pre/post region shaded
+**Pre-trend test** (limited by data; visual only, no p-values):
+- Estimate $\beta_{-1}$ for g=2017 cohort (the only available pre-treatment coefficient)
+- Expected: $\beta_{-1} \approx 0$ (normalized to 0 by C&S convention for the reference period; examine magnitude of leads)
+- *Limitation*: With only one pre-treatment observation, standard pre-trend testing yields zero degrees of freedom for falsification. Report explicitly in limitations.
 
 **Falsification tests**:
-1. **Anticipation**: Leads of treatment (future fires) on current outcomes; should be ≈0
-2. **Placebo**: Assign fires to pre-2013 years; estimate C&S ATT on post-2017 outcomes; should be ≈0
-3. **Alternative control**: Exclude never-treated with pre-2013 fires; ATT should remain similar
+1. **Placebo treatment**: Assign fires to 2007–2012; estimate C&S ATT on pre-2013 ACS outcomes; expected: ATT ≈ 0
+2. **Anticipation**: Leads of future fire exposure on current (pre-fire) outcomes; should be ≈ 0
+3. **Alternative control**: Exclude never-treated with any pre-2013 fires; ATT should remain similar
 4. **Smoke spillover**: Vary 100 km buffer (50, 150 km); ATT should be stable across radii
+5. **g=2022 contamination check**: Estimate ATT separately for g=2022 defined as fires 2017–2021 vs. restricted 2018–2021; report difference
 
 ### D. Heterogeneous Effects & Mechanisms
 
 **Extensive vs. intensive margin**:
-- Binary any-fire (extensive, primary)
-- Fire count, acres burned, WFP intensity (intensive; tests dose-response)
+- Burned share (continuous, primary)
+- Binary any-fire at 10% threshold (extensive; main binary specification)
+- Fire count, acres burned (intensive; dose-response)
 
-**Mediation analysis** (net migration as mediator):
+**Descriptive decomposition** (net migration as correlate):
 1. Estimate ATT on net-migration rate
-2. Estimate coefficient of migration on poverty
-3. Decompose: Total ATT = Direct (income) + Indirect (compositional)
+2. Estimate regression coefficient of migration on poverty conditional on fire treatment
+3. Accounting decomposition: Total ATT = Residual (income-associated) + Migration-associated component
+4. *Label as descriptive decomposition, not causal mediation*
 
 **Subgroup heterogeneity** (exploratory):
 - By baseline poverty (high/medium/low)
@@ -155,7 +222,7 @@ $$\text{Poverty}_{i,t} = \alpha_i + \lambda_t + \sum_{h \neq -1} \beta_h \cdot \
 
 ---
 
-## IV. Results (3–4 pages)
+## VI. Results (3–4 pages)
 
 ### A. Main Findings
 
@@ -176,10 +243,10 @@ Cols:
 Note: PS-IPW weights applied; SE clustered by county
 
 **Figure 2: Event-Study Plot (Poverty, Primary Outcome)**
-- X-axis: Relative time h (h=-1, 0, 1, 2, 3 corresponding to ~3yr pre, 0yr post, +3yr, +5yr, +7yr)
-- Y-axis: $\beta_h$ coefficient ± 95% CI
-- Shade pre-trends region (h<0); highlight post-treatment (h≥0)
-- Interpretation: Trajectory of poverty effects over time
+- X-axis: Relative time h ∈ {−1, 0, +1} for g=2017; h ∈ {−1, 0} for g=2022 (data-constrained; only 3 ACS snapshots exist)
+- Y-axis: $\beta_h$ coefficient ± 95% CI (bootstrap)
+- Shade pre-period (h < 0); highlight post-treatment (h ≥ 0)
+- Label h = −1 as normalized reference; note that only two or three data points are plotted per cohort
 
 **Figure 3: Event-Study Plot (Median Income, Secondary Outcome)**
 - Same structure as Figure 2; document income trajectory
@@ -191,40 +258,40 @@ Example narrative:
 - "Median household income declines by **$Z** (95% CI: [...])."
 - "Effects are **largest in rural tracts** (subgroup ATT = ...) and **smallest in high-baseline-income tracts** (...)."
 
-### C. Mediation Results
+### C. Decomposition Results
 
-**Table 3: Decomposition of Poverty Effect via Migration**
+**Table 3: Descriptive Decomposition of Poverty Effect via Migration**
 
 Rows:
 - Total ATT (poverty rate)
 - ATT (net-migration rate)
-- Mediator coefficient (migration → poverty)
-- Indirect effect (mediation)
-- Direct effect
+- Migration–poverty regression coefficient
+- Migration-associated component
+- Residual (income-associated) component
 
 Cols:
 - Coefficient, 95% CI, % of total effect
 
 Narrative interpretation:
-- "Out-migration **partially** mediates poverty effects. **Z% of the poverty increase driven by selective out-migration** (compositional effect); **(100–Z)% reflects income losses** (welfare effect). This suggests that [interpret: residents leaving are poorer/younger; low-income stayers experience income loss; economy restructures]."
+- "Out-migration is associated with **Z% of the poverty rate change** (descriptive decomposition; not a causal mediation estimate). The remaining **(100−Z)% is associated with resident income and employment losses**. Caution: the decomposition relies on the assumption that migration is the only pathway from fire to poverty other than income effects, which need not hold."
 
 ### D. Extensive vs. Intensive Margin
 
 **Table 4: Dose-Response Specification**
 
 Rows:
-- Any fire (binary, extensive)
+- Binary fire (burned share ≥10%, extensive)
+- Burned share (continuous, per 10 pp increment)
 - Fire count: 1 fire, 2 fires, 3+ fires
-- Acres burned: per 10,000-acre increment
-- WFP intensity: per percentile point
+- Total acres burned: per 10,000-acre increment
 
 Cols: ATT, 95% CI, interpretation
 
-Narrative: "Effects scale with fire intensity. Tracts with 2+ fires show [Y]× the poverty effect of single-fire tracts, consistent with causal relationship."
+Narrative: "Effects scale with burned share. Tracts with burned share ≥50% show [Y]× the poverty effect of tracts with share 10–25%, consistent with a dose-response relationship."
 
 ---
 
-## V. Heterogeneous Effects & Mechanisms (2–2.5 pages)
+## VII. Heterogeneous Effects & Mechanisms (2–2.5 pages)
 
 ### A. Subgroup Analysis
 
@@ -245,15 +312,15 @@ Interpretation: "Poverty effects **largest in rural and high-poverty-baseline tr
 - If employment recovers but income doesn't: "Employment recovery modest; workers displaced into lower-wage sectors (evidence from [sector breakdown])."
 
 **Narrative on migration as mechanism**:
-- If large mediation effect: "Out-migration is primary response; **Z% of poverty tracts relocate**. Low-income households disproportionately leave; remaining population experiences income shock."
-- If small mediation effect: "Limited migration response; residents adapt in place. Poverty increase reflects individual income losses."
+- If large migration-associated component: "Out-migration is a primary correlate of poverty change; **Z% of poverty tracts show net out-migration**. Descriptive evidence suggests low-income households disproportionately leave; remaining population experiences income shock."
+- If small migration-associated component: "Limited migration response; residents adapt in place. Poverty increase reflects individual income losses."
 
 **Narrative on adaptive capacity**:
-- If heterogeneity by baseline income: "High-income tracts recover quickly; low-income tracts experience persistent poverty effects, consistent with differential adaptive capacity."
+- If heterogeneity by baseline income: "High-income tracts recover quickly; low-income tracts experience persistent poverty effects, consistent with differential adaptive capacity and incomplete insurance coverage."
 
 ---
 
-## VI. Robustness & Sensitivity (2–2.5 pages)
+## VIII. Robustness & Sensitivity (2–2.5 pages)
 
 ### A. Threats & Robustness Tests (Organized by Threat, Not Test Type)
 
@@ -267,7 +334,7 @@ Interpretation: "Poverty effects **largest in rural and high-poverty-baseline tr
 - Report: ATT across all radii; assess sensitivity
 
 **Regional confounds**:
-- Add state × period FE (already in baseline?)
+- Add state × period FE (already in baseline)
 - Add census-division × period FE
 - Report: Whether regional controls change ATT
 
@@ -278,11 +345,13 @@ Interpretation: "Poverty effects **largest in rural and high-poverty-baseline tr
 
 **Fire definition**:
 - Vary MTBS minimum: 500, 1,000 (baseline), 2,000 acres
-- Report: ATT scale with minimum threshold
+- Vary burned share threshold: 5%, 10% (baseline), 25%
+- Report: ATT scale with minimum threshold and burned share cutoff
 
 **Specification**:
-- Event-study window: h ∈ {-2, -1, 0, 1, 2, 3} vs. {-1, 0, 1, 2, 3, 4, 5, 7}
+- Burned share (continuous) vs. binary any-fire
 - Weighted vs. unweighted ATT aggregation
+- g=2022 restricted (2018–2021 only) vs. unrestricted (2017–2021)
 - Report: Sensitivity to specification
 
 **Estimator robustness**:
@@ -290,7 +359,7 @@ Interpretation: "Poverty effects **largest in rural and high-poverty-baseline tr
 - Report: Whether conclusions differ
 
 **Table 6: Robustness Summary**
-- Rows: Robustness test (smoke, MOE, fire threshold, regional FE, etc.)
+- Rows: Robustness test (smoke, MOE, fire threshold, burned share, regional FE, estimator, etc.)
 - Cols: ATT, 95% CI, notes
 - Highlight if any spec substantially changes conclusions
 
@@ -298,45 +367,61 @@ Interpretation: "Poverty effects **largest in rural and high-poverty-baseline tr
 
 (Narrative; 0.5 page)
 - MTBS ≥1,000 acres limits to large fires; results not generalizable to smaller fires
-- ACS 5-year estimates necessary for rural validity; coarse temporal resolution; pre-post measurement 4–6 years apart
+- ACS 5-year estimates necessary for rural validity; coarse temporal resolution; pre-post measurement separated by 5-year ACS windows
+- **Only one pre-treatment period per cohort**: with ACS periods 2012/2017/2022, standard pre-trend testing is infeasible; credibility of parallel trends relies on WFP matching + placebo tests
 - Rural tracts have larger ACS MOE; wider CIs by design, not weakness
-- Cannot identify long-term persistence (>5 years) with current data
-- Migration measure (ACS 5-yr residence) noisy; mediation results exploratory
-- Fire severity not directly measured; use binary + acres as proxy
+- Cannot identify long-term persistence (>5–7 years) with current data
+- Migration measure (ACS 5-yr residence) noisy; descriptive decomposition results exploratory
+- Fire severity not directly measured; burned share as proxy
 - Smoke impacts proxy via geographic buffer (actual smoke transport varies)
 
 ---
 
-## VII. Discussion & Policy Implications (1.5–2 pages)
+## IX. Discussion & Policy Implications (1.5–2 pages)
 
 ### A. Interpretation of Findings
 
 *Restate main finding with mechanism*:
-- "Large wildfires increase poverty rates in affected census tracts, with effects mediated partially by population displacement and partially by income losses."
-- "Policy implication: Relief design should account for both income-support needs (for stayers) and relocation assistance (for displaced)."
+- "Large wildfires increase poverty rates in affected census tracts, with effects associated both with resident income losses and with selective out-migration."
+- "The magnitude and durability of these effects has direct implications for federal disaster relief policy."
 
-### B. Scope & Generalizability
+### B. Policy Implications (Specific)
+
+**FEMA Individual Assistance (IA) targeting**:
+- If income-loss channel dominates: IA should prioritize income replacement and temporary housing grants for stayers in rural, high-poverty tracts. Current IA means-testing may exclude the most vulnerable.
+- If migration channel dominates: Relief design should emphasize managed-relocation assistance (cost-of-move, rental housing search support) rather than in-place reconstruction grants.
+
+**SBA Disaster Loans**:
+- SBA loans require creditworthiness; the lowest-income households in highest-poverty tracts are least likely to qualify. If these households disproportionately experience income losses, SBA loans are poorly targeted. Evidence from subgroup heterogeneity (high-poverty vs. low-poverty tracts) will speak directly to this.
+
+**Wildfire prevention & Cohesive Strategy**:
+- WFP raster used in this study as a matching covariate is the same product used in USFS fuels treatment planning. If high-WFP tracts show the largest poverty effects, this provides economic evidence for prioritizing fuels reduction investments in populated wildland-urban interface areas.
+
+**Managed retreat**:
+- If persistent poverty effects concentrate in high-WFP rural tracts, this study provides evidence for managed retreat or community relocation programs (e.g., FEMA BRIC-funded buyouts) as a cost-effective disaster adaptation strategy.
+
+### C. Scope & Generalizability
 
 - **Geographic**: Results span all lower-48 states; fire impacts not regionally concentrated (if true; else flag regional heterogeneity)
-- **Fire size**: MTBS ≥1,000 acres; trade-off cleaner identification for limited scope
+- **Fire size**: MTBS ≥1,000 acres; trade-off cleaner identification for limited scope; small fires may not produce detectable poverty effects
 - **Time horizon**: Medium-term effects (3–5 yr post-fire); long-term persistence unknown
 
-### C. Comparison to Prior Work
+### D. Comparison to Prior Work
 
-- Contrast to county-level prior work; explain why tract resolution matters
+- Contrast to county-level prior work; explain why tract resolution matters (within-county heterogeneity; more precise treatment assignment)
 - Situate vis-à-vis health/property impact studies
-- Note: First study to explicitly decompose poverty effects via mediation
+- Note: First study to explicitly decompose poverty effects via descriptive decomposition of migration and income channels
 
-### D. Open Questions & Future Work
+### E. Open Questions & Future Work
 
 - Do effects persist beyond 5–7 years? (Requires future ACS data)
-- Differential impacts by disaster relief generosity (FEMA assistance)? (Requires federal assistance micro-data)
+- Differential impacts by disaster relief generosity (FEMA IA/PA amounts)? (Requires federal assistance micro-data at tract level)
 - Intergenerational effects on children's long-run outcomes? (Requires longitudinal linkage)
-- How do repeated fires compound effects? (Current design captures single-fire cohorts; future multi-event panel)
+- How do repeated fires compound effects? (Current design captures single first-fire cohorts; future multi-event panel)
 
 ---
 
-## VIII. Conclusion (0.5 page)
+## X. Conclusion (0.5 page)
 
 Concise restatement of primary finding + policy implication. No new results.
 
@@ -346,12 +431,12 @@ Example: "Large wildfires cause substantial, measurable increases in poverty rat
 
 ## Tables & Figures Summary
 
-### Main Tables (in Results § IV)
+### Main Tables
 1. **Table 1a**: Pre-treatment summary stats (pre-IPW) — shows imbalance
 2. **Table 1b**: Post-treatment summary stats (post-IPW) — shows improved balance
 3. **Table 2**: Staggered C&S ATT (all outcomes) — main results
-4. **Table 3**: Mediation decomposition (poverty via migration)
-5. **Table 4**: Dose-response (extensive vs. intensive margin)
+4. **Table 3**: Descriptive decomposition (poverty via migration)
+5. **Table 4**: Dose-response (burned share and fire count)
 6. **Table 5**: Heterogeneous effects (by subgroups)
 7. **Table 6**: Robustness summary (tests organized by threat)
 
@@ -362,9 +447,9 @@ Example: "Large wildfires cause substantial, measurable increases in poverty rat
 - A4: Subgroup analysis (extended; more granular breakdowns)
 - A5: Alternative identification tests (placebo, leads, alternative controls)
 
-### Main Figures (in Results & Robustness § IV–VI)
+### Main Figures
 1. **Figure 1**: Geographic map of fires, treated tracts, control buffer
-2. **Figure 2**: Event-study plot (poverty) — central figure
+2. **Figure 2**: Event-study plot (poverty) — central figure; note: plots h ∈ {−1, 0, +1} for g=2017 and h ∈ {−1, 0} for g=2022; only 2–3 data points per cohort
 3. **Figure 3**: Event-study plot (income) — secondary outcome
 4. **Figure 4**: Propensity score density (pre/post-IPW) — balance diagnostic
 5. **Figure 5**: Event-study by subgroup (rural vs. urban, or high-poverty vs. low-poverty) — heterogeneity
@@ -389,10 +474,10 @@ Example: "Large wildfires cause substantial, measurable increases in poverty rat
 "This paper estimates the causal effects of large wildfires on poverty rates using a national sample of ~45,000 census tracts observed 2012–2022. We employ staggered difference-in-differences (Callaway & Sant'Anna 2021) with spatial matching on USFS Wildfire Hazard Potential (270m raster, predetermined)."
 
 **Sentence 3 (Main Results)**:
-"Exposure to large wildfires (≥1,000 acres) increases tract poverty rates by [X] percentage points within 3–5 years post-fire. Mediation analysis indicates that [Z]% of the effect is driven by selective out-migration; [100–Z]% reflects income losses among stayers, implying substantial welfare costs."
+"Exposure to large wildfires (≥1,000 acres) increases tract poverty rates by [X] percentage points within 3–5 years post-fire. Descriptive decomposition indicates that [Z]% of the effect is associated with selective out-migration; [100−Z]% is associated with resident income losses among stayers."
 
 **Sentence 4 (Implication)**:
-"Results underscore the distributional impacts of climate-driven disasters and inform disaster relief design, emphasizing trade-offs between income support for stayers and relocation assistance for displaced residents."
+"Results underscore the distributional impacts of climate-driven disasters and inform disaster relief design, highlighting trade-offs between income support for stayers (FEMA Individual Assistance) and relocation assistance for displaced residents."
 
 ---
 
@@ -403,9 +488,9 @@ Example: "Large wildfires cause substantial, measurable increases in poverty rat
 
 2. **"Fire and Flight: Displacement, Income Loss, and Poverty in the Wildfire Era"**
    - Evocative; emphasizes mechanism (displacement vs. income) and policy relevance
+   - *Ambiguity note*: "Flight" could be misread as aviation; in context clearly refers to displacement, but consider co-author preference and journal audience
 
 3. **"Climate Shocks and Economic Vulnerability: The Causal Effect of Wildfires on Poverty in Rural and Urban America"**
    - Academic, comprehensive; signals vulnerability/distributional focus
 
 *(Choose based on co-author preference and target journal scope)*
-
