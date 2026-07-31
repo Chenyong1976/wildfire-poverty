@@ -1,6 +1,6 @@
 # Research Plan: Wildfire Impact on Poverty and Economic Outcomes
 
-**Last Updated**: 2026-06-18  
+**Last Updated**: 2026-07-30 (Major revision: County → Census Tract; Raster-based spatial matching)  
 **Principal Investigator**: [Your Name]  
 **Project Directory**: `~/wildfire-poverty-analysis/`
 
@@ -9,78 +9,87 @@
 ## 1. Research Question & Motivation
 
 ### Primary Question
-**How do large wildfires affect household incomes, poverty rates, net migration, and employment in affected US counties? What role does population displacement play in these effects?**
+**How do large wildfires affect household incomes, poverty rates, net migration, and employment in affected US census tracts? What role does population displacement play in these effects?**
 
 ### Motivation
-Wildfire frequency and severity have increased dramatically across the US over the past two decades, yet empirical evidence on economic impacts—particularly for vulnerable populations—remains limited. Most prior work focuses on health outcomes or Western states; this study extends to all lower-48 states and targets **distributional effects on income, poverty, and net migration**, which are central to understanding whether wildfires cause permanent income losses or trigger selective out-migration. We explicitly model net migration as a potential mediating mechanism: if wildfires displace low-income households from treated counties, county-level poverty rates may decline even if individual incomes fall (compositional effect), or county poverty may increase if displacement is incomplete (welfare loss dominates).
+Wildfire frequency and severity have increased dramatically across the US over the past two decades, yet empirical evidence on economic impacts—particularly for vulnerable populations—remains limited. County-level analysis masks substantial within-county heterogeneity in fire exposure and economic outcomes; this study shifts to **census-tract resolution** to capture fine-grained geographic variation in wildfire hazard and socioeconomic vulnerability. Using raster-level (270m × 270m) wildfire hazard potential data for spatial matching, we can identify treated and control tracts with greater precision, improving statistical power and reducing selection bias. We target **distributional effects on income, poverty, and net migration** across all lower-48 states, and explicitly model net migration as a potential mediating mechanism: if wildfires displace low-income households from treated tracts, tract-level poverty rates may decline even if individual incomes fall (compositional effect), or tract poverty may increase if displacement is incomplete (welfare loss dominates).
 
 ### Contribution
-- **Empirical**: Quasi-experimental evidence of wildfires' causal impact on poverty, income, and net migration across all lower-48 US counties (not just Western states) using staggered DiD with WFP-matched controls
-- **Mechanism**: Explicit analysis of net migration as a mediating pathway; decompose county-level poverty effects into individual income losses and population composition shifts
-- **Methodological**: Replicates the rigorous treatment/control definition and matching strategy from the wildfire-finance project (WFP 2012 matching, PS-IPW, Callaway & Sant'Anna 2021)
-- **Policy**: Estimates inform disaster relief allocation, climate adaptation spending, and migration assistance design; highlight whether "economic impact" reflects welfare loss or population reallocation
+- **Empirical**: Quasi-experimental evidence of wildfires' causal impact on poverty, income, and net migration across ~70,000 lower-48 US census tracts (not just Western states or county-level aggregates) using staggered DiD with fine-grained WFP 2012 raster matching
+- **Spatial precision**: First study to leverage 270m resolution WHP data for tract-level treatment/control matching, improving power and reducing geographic confounding compared to county-level designs
+- **Mechanism**: Explicit analysis of net migration as a mediating pathway; decompose tract-level poverty effects into individual income losses and population composition shifts
+- **Methodological**: Census-tract analysis with raster-based spatial matching (WFP 2012 at native 270m resolution) paired with Callaway & Sant'Anna (2021) staggered DiD
+- **Policy**: Estimates inform hyper-local disaster relief targeting, climate adaptation spending, and migration assistance design; highlight whether "economic impact" reflects welfare loss or population reallocation
 
 ---
 
 ## 2. Identification Strategy
 
-### Design: Simple Difference-in-Differences (Single Treatment Cohort)
+### Design: Staggered Difference-in-Differences with Raster-Based Spatial Matching
 
-**Treatment**: County experiences its first large fire (MTBS ≥1,000 acres) in **2012–2016** (treatment window).
+**Treatment**: Census tract experiences its first large fire (MTBS ≥1,000 acres) in **2013–2021** (treatment window), identified via fine-grained spatial overlap (tract intersected with MTBS fire perimeter).
 
-**Treatment cohort** (single):
-- **Treated** (g=2016): First qualifying fire in 2012–2016; observed post-fire at 2016–2019 ACS
-- **Never-treated** (g=0): No qualifying fires in 2012–2016 AND outside 100 km smoke buffer
+**Treatment cohorts** (staggered):
+- **Treated** (g=2017): First qualifying fire in 2013–2016; observed post-fire at 2017–2021 ACS 5-yr estimates
+- **Treated** (g=2022): First qualifying fire in 2017–2021; observed post-fire at 2018–2022 ACS 5-yr estimates (if available)
+- **Never-treated** (g=0): No qualifying fires in 2013–2021 AND outside 100 km smoke buffer
 
 **Excluded groups**:
-- Pre-2012 fires: Used for covariate balance in matching (pre-treatment fire history), not as controls
-- Fires 2017+: Excluded entirely (not-yet-treated; may be affected by post-2017 fires not yet observed)
+- Pre-2013 fires: Used for covariate balance in matching (pre-treatment fire history), not as controls
+- Fires 2022+: Excluded if outcome data not yet available
 
-**Extensive margin**: County ever experiences any large fire (≥1,000 acres) in 2012–2016.
+**Extensive margin**: Tract ever experiences any large fire (≥1,000 acres) in treatment window.
 
-**Intensive margin**: Fire frequency (count of fires 2012–2016) and total acres burned (dose-response).
+**Intensive margin**: Fire count (frequency of fires) and total acres burned within tract (dose-response); WHP 2012 raster intensity (270m resolution) as continuous treatment proxy.
 
-**Estimand**: Average treatment effect on the treated (ATT) — the causal effect of experiencing a wildfire in 2012–2016 on outcomes (poverty rate, median income, net migration, employment) measured at 2016–2019 (post-fire), relative to pre-treatment baseline (2007–2011).
+**Spatial matching strategy**: Leverage WFP 2012 raster at native 270m resolution. For each tract, compute: (1) mean WFP 2012 percentile across all 270m pixels overlapping tract, (2) % tract area in each WFP hazard quintile, (3) pairwise raster distance to nearest high-hazard pixel. Use these tract-level raster summaries as matching covariates via PS-IPW (finer granularity than county-level aggregation).
 
-**Variation**: Within the 2012–2016 window, fire occurrence varies geographically and temporally across the lower-48 US counties. Counties that never burned (2012–2016) form the comparison group.
+**Estimand**: Average treatment effect on the treated (ATT) — the causal effect of experiencing a wildfire in treatment window on outcomes (poverty rate, median income, net migration, employment) measured post-fire, relative to pre-treatment baseline (2012 ACS), conditional on raster-based WFP 2012 matching.
+
+**Variation**: Fire occurrence varies geographically and temporally across ~70,000 lower-48 US census tracts. Within-county heterogeneity in fire exposure and baseline hazard is now captured at tract resolution. Tracts that never burned (2013–2021) and outside smoke buffer form the comparison group.
 
 ### Threats to Identification & Mitigation
 
 | Threat | Mitigation |
 |--------|-----------|
-| **Selection bias**: High-hazard regions (economically vulnerable, dry terrain) experience fires endogenously | **WFP 2012 matching** (predetermined): Use USFS Wildfire Potential 2012 (finalized before 2013 fire season) as primary matching variable via propensity-score inverse-probability weights (PS-IPW). Balance treated and control counties on WFP quintile, pre-2012 fire history, pre-2012 poverty rate, median income, population density, RUCC, and demographic covariates. Report effective sample size (ESS) of reweighted control group. |
-| **Anticipatory behavior**: Counties expect fires and adjust preemptively (e.g., out-migration before fire) | **Pre-trend testing**: Report pre-treatment coefficients ($\beta_{h<0}$) from event-study with 95% CIs (not null-hypothesis tests). Assess visual magnitude and direction of divergence before treatment. If pre-trends modest relative to post-treatment effects, interpret as minor deviation from perfect parallelism. Dynamic balance test: regress outcome on leads of treatment (falsification test). |
-| **Smoke spillover**: "Control" counties may be exposed to smoke from nearby treated counties' fires | **Geographic exclusion**: Remove counties within 100 km of any fire perimeter from the control group (baseline, following wildfire-finance). Robustness: vary radius (50 km, 150 km). Report whether narrower buffers materially change results. |
-| **Temporal confounds**: Other regional shocks (economic downturns, housing bubbles, energy transitions, COVID) coincide with fires | **Regional FEs**: Include state × year FE (census-period basis, not annual) to absorb regional-year shocks. Robustness: add census division × year FE for finer regional control. Document any divergence in results. |
-| **Migration composition bias**: County-level poverty rates reflect both individual income effects AND selection of who stays/leaves | **Mediation analysis (§4.2)**: Estimate causal effect on net migration (ACS 5-yr residence change) as a potential mediator. Separately report: (a) individual-level intent-to-treat effects (income, poverty at origin), (b) county-level ATT on poverty rate, (c) decomposition: income effect + compositional effect. Flag in discussion if large migration effects suggest compositional change. |
-| **Effect heterogeneity**: Wildfires may have different impacts by geography, baseline poverty, fire severity | **Extensive and intensive margin**: Report both (a) any large fire (extensive) and (b) fire frequency/acreage (intensive) separately. Heterogeneous effects: subgroup analysis by baseline poverty (high vs. low), census region (coastal vs. interior). Report Sun & Abraham (2021) alongside Callaway & Sant'Anna as robustness check for heterogeneity bias. |
+| **Selection bias**: High-hazard regions (economically vulnerable, dry terrain) experience fires endogenously | **Raster-based WFP 2012 matching** (predetermined): Use USFS Wildfire Potential 2012 (finalized before 2013 fire season) at native 270m resolution as primary matching variable. For each tract, compute tract-level raster summaries (mean WFP percentile, % area in each quintile, raster distance to high-hazard pixels). Match via propensity-score inverse-probability weights (PS-IPW) on these raster covariates + pre-2013 fire history + pre-2012 poverty rate, median income, population density, RUCC, and demographic covariates. **Rationale**: Finer spatial resolution (270m vs. county aggregation) captures within-county hazard heterogeneity, reducing geographic confounding. Report effective sample size (ESS) of reweighted control group. |
+| **Anticipatory behavior**: Tracts expect fires and adjust preemptively (e.g., out-migration before fire) | **Pre-trend testing**: Report pre-treatment coefficients ($\beta_{h<0}$) from event-study with 95% CIs (not null-hypothesis tests). Assess visual magnitude and direction of divergence before treatment. If pre-trends modest relative to post-treatment effects, interpret as minor deviation from perfect parallelism. Dynamic balance test: regress outcome on leads of treatment (falsification test). |
+| **Smoke spillover**: "Control" tracts may be exposed to smoke from nearby treated tracts' fires | **Geographic exclusion**: Remove tracts within 100 km of any fire perimeter from the control group (baseline, following wildfire-finance). Robustness: vary radius (50 km, 150 km). Report whether narrower buffers materially change results. |
+| **Temporal confounds**: Other regional shocks (economic downturns, housing bubbles, energy transitions, COVID) coincide with fires | **Regional FEs**: Include state × ACS-period FE to absorb regional-period shocks. Robustness: add census division × period FE for finer regional control. Document any divergence in results. |
+| **Migration composition bias**: Tract-level poverty rates reflect both individual income effects AND selection of who stays/leaves | **Mediation analysis (§4.2)**: Estimate causal effect on net migration (ACS 5-yr residence change) as a potential mediator. Separately report: (a) tract-level ATT on income/poverty, (b) tract-level ATT on net-migration rate, (c) decomposition: income effect + compositional effect. Flag in discussion if large migration effects suggest compositional change. |
+| **Effect heterogeneity**: Wildfires may have different impacts by geography, baseline poverty, fire severity | **Extensive and intensive margin**: Report both (a) any large fire (extensive) and (b) fire frequency/acreage and raster intensity (intensive) separately. Heterogeneous effects: subgroup analysis by baseline poverty (high vs. low), census region, baseline WFP hazard quintile. Report Sun & Abraham (2021) alongside Callaway & Sant'Anna as robustness check for heterogeneity bias. |
+| **Tract-level outcome measurement error**: ACS estimates at tract level have larger MOEs than county; sparse tracts may have unreliable poverty/income estimates | **Data quality screen**: Drop tracts with ACS margin of error > 30% of point estimate for primary outcome (poverty rate). Report N tracts excluded by MOE screen. Use only tracts with population ≥ 500 (ACS threshold for reliable estimates). Conduct robustness: vary MOE threshold (20%, 30%, 40%); report if results sensitive to exclusion rule. |
 
 ### Estimating Equations
 
 **Main specification** (simple difference-in-differences with multiple pre-treatment periods):
 
-$$\text{Outcome}_{c,t} = \alpha_c + \lambda_{t} + \mathbb{1}[\text{treated}_c \times \text{post}_t] \cdot \tau + X_{c,\text{pre}} \gamma + \epsilon_{c,t}$$
+$$\text{Outcome}_{t,g} = \alpha_t + \gamma_g + \text{ATT}_{t,g} \cdot \mathbb{1}[t \geq g] + X_{t,\text{pre}} \beta + \epsilon_{t,g}$$
+
+**Callaway & Sant'Anna (2021) event-study variant** (primary):
+
+$$\text{Outcome}_{i,t} = \alpha_i + \lambda_t + \sum_{h \neq -1} \beta_h \cdot \mathbb{1}[\text{g}_i = t - h] + X_{i,\text{pre}} \gamma + \epsilon_{i,t}$$
 
 where:
-- $c$ = county
-- $t \in \{\text{pre-1990}, \text{pre-2000}, \text{pre-2007-2011}, \text{post-2015-2019}\}$ (3 pre-treatment, 1 post-treatment period)
-- $\text{treated}_c$ = 1 if county has ≥1 MTBS fire ≥1,000 acres in 2012–2015, 0 otherwise
-- $\text{post}_t$ = 1 if $t =$ post-treatment (2015–2019), 0 if $t \in$ pre-treatment (1990, 2000, 2007–2011)
-- $\tau$ = **ATT** (average treatment effect on the treated)
-- $\alpha_c$ = county fixed effects
-- $\lambda_t$ = period fixed effects (1990, 2000, 2007–2011, 2015–2019)
-- $X_{c,\text{pre}}$ = pre-treatment covariates (WFP 2012 quintile, pre-2012 fire history, baseline poverty/income)
-- Standard errors clustered at county level; inverse-probability weights (from PS-IPW matching) applied
+- $i$ = census tract
+- $t$ = ACS period (2012, 2017, 2022; labeled by final census year of 5-yr estimate)
+- $g$ = cohort (year of first fire; g=2017 if first fire 2013–2016, g=2022 if 2017–2021, g=0 if never-treated)
+- $h$ = relative time to treatment (h=0 is post-fire, h<0 are pre-fire periods)
+- $\beta_h$ = treatment effect at relative time $h$
+- $\alpha_i$ = tract fixed effects
+- $\lambda_t$ = period fixed effects
+- $X_{i,\text{pre}}$ = pre-treatment covariates (raster-based WFP 2012 summaries, pre-2013 fire history, baseline poverty/income, population density, RUCC, demographics)
+- Standard errors clustered at tract level; inverse-probability weights (from PS-IPW raster matching) applied
 
 **Interpretation**:
-- $\tau$ = difference-in-differences estimate; causal ATT under parallel trends assumption (conditional on matching covariates)
-- **Multiple pre-treatment periods (1990, 2000, 2007–2011) allow formal testing of parallel trends assumption**
-- Post-treatment measured at 2015–2019 ACS (3–8 years post-fire); longer adjustment window than v3.0
-- No event-study window; direct estimate of aggregate treatment effect
+- $\beta_h$ = causal effect $h$ periods relative to fire; allows pre-trends testing and dynamic effects
+- $\text{ATT} = \frac{1}{k} \sum_{h \geq 0} \beta_h$ = aggregate post-treatment effect (simple average or weighted by time-at-risk)
+- Pre-trends ($h<0$): Should be zero or negligibly small if parallel trends holds
+- Post-trends ($h \geq 0$): Report trajectory of effects over time (e.g., effects may fade or strengthen)
 
 **Robustness: Regression adjustment variant**:
 
-$$\text{Outcome}_{c,t} = \alpha_c + \lambda_t + \tau \cdot \mathbb{1}[\text{treated}_c \times \text{post}_t] + X_{c,\text{pre}} \gamma + \text{State FE} + \epsilon_{c,t}$$
+$$\text{Outcome}_{i,t,g} = \alpha_i + \lambda_t + \sum_{h \neq -1} \beta_h \cdot \mathbb{1}[\text{g}_i = t - h] + X_{i,\text{pre}} \gamma + \text{State FE}_i + \epsilon_{i,t,g}$$
 
 Include state FE to absorb regional shocks (e.g., economic downturns, migration waves correlated with geography).
 
@@ -104,22 +113,26 @@ Decompose total effect on poverty rate into:
 ## 3. Data & Sample Definition
 
 ### Sample Frame
-- **Geographic scope**: All lower-48 US states (~3,100 counties)
-- **Time period**: Census and ACS data with three analysis periods:
-  - **Pre-treatment baseline** (formal parallel trends test):
-    - 1990 Census (poverty, income, employment)
-    - 2000 Census (poverty, income, employment)
-    - 2007–2011 ACS (poverty, income, employment)
-  - **Treatment window**: 2012–2015 (fires occurring during this period define treated counties; ensures ≥1 year post-fire observation before outcome window)
-  - **Post-treatment**: 2015–2019 ACS (outcome measurement; 3–8 years post-fire; avoids COVID-2020)
-- **Unit of analysis**: County
-- **Treatment cohort**: Single cohort with first qualifying fire in 2012–2015
-- **N**: ~3,100 counties × 3 periods = ~9,300 observations (balanced panel; all lower-48 counties in 1990, 2000, and 2015–2019 observations)
+- **Geographic scope**: All lower-48 US states (~70,000 census tracts; Census 2010 definition)
+- **Time period**: ACS 5-year estimates with three analysis periods:
+  - **Pre-treatment baseline**: 2007–2011 ACS (poverty, income, employment, net migration)
+  - **Treatment window**: 2013–2021 (fires occurring during this period define treated tracts)
+    - Cohort 1 (g=2017): First fire in 2013–2016
+    - Cohort 2 (g=2022): First fire in 2017–2021
+  - **Post-treatment**: 2017–2021 ACS (g=2017) and 2018–2022 ACS (g=2022) — outcome measurement
+- **Unit of analysis**: Census tract (2010 boundaries; ~70,000 tracts nationally)
+- **Treatment cohorts**: Staggered (two cohorts: g=2017, g=2022)
+- **N**: ~70,000 tracts × 3 periods ≈ ~210,000 observations (unbalanced panel; not all tracts observed in all periods due to ACS sparsity)
 
-**Pre-treatment periods allow formal parallel trends testing**:
-- 1990 and 2000 Census provide two independent pre-treatment observations
-- Can formally test whether treated and control counties follow parallel trends (1990→2000, 2000→2007–2011)
-- Strengthens identification vs. single pre-period design
+**Data quality screen**:
+- Exclude tracts with ACS margin of error > 30% of point estimate for poverty rate (primary outcome)
+- Exclude tracts with population < 500 (ACS threshold for reliable tract-level estimates)
+- Expected final sample: ~40,000–50,000 tracts × 3 periods ≈ ~120,000–150,000 observations
+
+**Statistical power advantage**:
+- Tract-level analysis: 10–15× more observations than county-level (70k tracts vs. 3.1k counties)
+- Finer spatial resolution (270m WHP pixels) improves within-county matching precision
+- Larger sample size enables detection of smaller effects and subgroup heterogeneity
 
 ### Outcome Variables
 
@@ -141,174 +154,211 @@ Decompose total effect on poverty rate into:
 ### Treatment Definition
 
 **Extensive margin (any fire)**:
-- **Treated**: County experiences its first large fire (MTBS polygon ≥1,000 acres) in **2012–2015**.
+- **Treated**: Census tract experiences its first large fire (MTBS polygon ≥1,000 acres) in **2013–2021**.
 - **Fire perimeter definition** (replicating wildfire-finance):
   - Use MTBS database (1984–2022 fires, nationwide coverage)
   - Minimum size threshold: 1,000 acres (limits to consequential fires; trade-off: cleaner identification vs. limited scope)
-  - Spatial match: MTBS fire polygon overlaps county boundary (any overlap counts as treated in fire year)
-- **Single cohort**: All treated counties have first fire in 2012–2015 window; ensures ≥1 year post-fire observation before 2015–2019 outcome measurement
-- **Rationale**: Narrower treatment window (2012–2015 vs. 2012–2016) ensures homogeneous treatment exposure time; all fires have time to affect outcomes by 2015–2019 ACS
+  - Spatial match: Tract intersects MTBS fire polygon (any spatial overlap counts as treated in fire year); compute % tract area burned
+- **Staggered cohorts**:
+  - g=2017: First fire 2013–2016; post-treatment outcome measured at 2017–2021 ACS
+  - g=2022: First fire 2017–2021; post-treatment outcome measured at 2018–2022 ACS
+- **Rationale**: Staggered timing accommodates two distinct fire cohorts, each with sufficient post-fire follow-up before outcome measurement
 
-**Intensive margin (fire frequency/acreage)**:
-- **Fire count**: Number of large fires (≥1,000 acres) per county in 2012–2015 (0, 1, 2, 3+)
-- **Total acres burned**: Sum of acres burned across all large fires per county in 2012–2015
-- **Report both specifications**: (a) binary any-fire indicator (extensive), (b) dose-response by fire frequency or acreage (intensive)
+**Intensive margin (fire frequency/acreage/raster intensity)**:
+- **Fire count**: Number of large fires (≥1,000 acres) per tract in treatment window (0, 1, 2, 3+)
+- **Total acres burned**: Sum of acres burned across all large fires per tract; may exceed tract area if fire spans multiple tracts
+- **WFP 2012 raster intensity**: Mean WFP 2012 percentile (0–100) across 270m pixels overlapping tract; use as continuous treatment proxy
+- **Report specifications**: (a) binary any-fire indicator (extensive), (b) dose-response by fire frequency or acreage (intensive), (c) raster-based continuous treatment (WFP intensity)
 
 ### Control Definition
 
 **Never-treated**:
-- Counties with no large fire (≥1,000 acres, MTBS) in **2012–2015** AND outside 100 km smoke buffer
+- Tracts with no large fire (≥1,000 acres, MTBS) in **2013–2021** AND outside 100 km smoke buffer
 
 **Excluded groups**:
-- **Pre-2012 fires (≤2011)**: Used in matching covariates (pre-treatment fire history) to control for baseline fire exposure. Counties with pre-2012 fires are **excluded from the never-treated pool** (not used as controls). This avoids confounding from prior fire recovery/adaptation effects.
-- **Post-2015 fires (≥2016)**: Counties with first fire in 2016+ are excluded entirely (not-yet-treated; would be affected by fires after outcome measurement window)
-- **Smoke-exposed controls**: Counties within **100 km** of any treated county's fire perimeter (baseline, following wildfire-finance). Robustness: vary radius (50 km, 150 km).
+- **Pre-2013 fires (≤2012)**: Used in matching covariates (pre-treatment fire history) to control for baseline fire exposure. Tracts with pre-2013 fires are **excluded from the never-treated pool** (not used as controls). This avoids confounding from prior fire recovery/adaptation effects.
+- **Smoke-exposed controls**: Tracts within **100 km** of any treated tract's fire perimeter (baseline, following wildfire-finance). Robustness: vary radius (50 km, 150 km).
+- **Data quality failures**: Tracts with ACS MOE > 30% of point estimate for poverty rate; population < 500.
 
-**Matching covariates** (using PS-IPW):
-- **WFP 2012 quintile** (predetermined): USFS Wildfire Potential 2012, finalized before treatment window (2012–2015)
-- **Pre-2012 fire history**: Any large fire in 1984–2011, total acres burned 1984–2011
-- **Baseline (2007–2011 or 2000) covariates from ACS/Census**: Poverty rate, median household income, population density, % age 65+
+**Matching covariates** (using PS-IPW with raster-based spatial precision):
+- **WFP 2012 raster summaries** (predetermined, 270m resolution): 
+  - Mean WFP 2012 percentile (0–100) across all 270m pixels intersecting tract
+  - % tract area in each WFP hazard quintile (5 indicators)
+  - Raster distance to nearest high-hazard pixel (WFP > 75th percentile)
+- **Pre-2013 fire history**: Any large fire in 1984–2012, total acres burned 1984–2012
+- **Baseline (2007–2011 ACS) covariates**: Poverty rate, median household income, population density, % age 65+, % race/ethnicity groups
 - **RUCC**: USDA Rural-Urban Continuum Code (2013 vintage)
-- **Other**: Population (for weighting; drop counties with pop <1,000)
+- **Tract population**: Drop tracts with pop < 500
 
 **Balance diagnostics**:
 - Report standardized mean differences (SMD) before and after PS-IPW matching (target: SMD < 0.1 for all covariates)
 - Report effective sample size (ESS) of reweighted control group; flag if ESS << unweighted N (thin common support)
+- Density plots: propensity score distributions before and after reweighting for treated vs. controls
 
 ### Data Sources & Acquisition
 
 | Variable | Source | Format | Notes |
 |----------|--------|--------|-------|
-| Poverty rate, median income, employment, net migration | ACS 5-yr (IPUMS) | CSV extracts | **Use 5-year estimates aligned to census years** (2007, 2012, 2017, 2022; labeled by final year of estimate). Account for disclosure avoidance in 2020 onward (larger standard errors; consider 5-yr aggregation or sensitivity dropping 2020-based estimates). |
-| Per capita income | BEA NIPA | CSV (FRED API) or REIS | Annual series; interpolate or use single-year closest to census period. |
-| Industry employment | ACS 5-yr (reuse from poverty extract) | CSV | Extracted from IPUMS along with poverty/income variables. |
-| Fire perimeters & treatment assignment | MTBS (USGS) | Shared from wildfire-finance project | Reuse `wildfire-finance/data/raw/mtbs_perims/` and treatment assignment files (g=2017, g=2022 cohorts). |
-| **WFP 2012** (primary matching) | USFS | GeoTIFF (270m resolution, ESRI Grid) | Shared from wildfire-finance project: `wildfire-finance/data/raw/WHP/Data/wfp_2012_continuous/wfp2012_cnt`. **Predetermined for fires from 2013 onward** (finalized before 2013 fire season). |
-| WHP 2014 (robustness) | USFS | GeoTIFF (270m resolution) | Shared from wildfire-finance: `wildfire-finance/data/raw/WHP/Data/whp_2014_continuous/whp2014_cnt`. NOT predetermined for 2013–2014 fires; use in robustness only. |
-| County boundaries | USGS / Census | Shapefile | Standard TIGER county geographic frame. |
-| Baseline covariates (2012) | ACS, USDA RUCC | CSV / API | From IPUMS and USDA; for matching and balance diagnostics. |
-| Smoke buffer (100 km) | Derived from MTBS | Parquet | Reuse from wildfire-finance: `wildfire-finance/data/processed/fire_perimeters_100km_buffer.parquet`. Regenerate for national sample if needed. |
+| Poverty rate, median income, employment, net migration | ACS 5-yr (IPUMS) | CSV extracts | **Use 5-year estimates aligned to census years** (2012, 2017, 2022; labeled by final year of estimate). **Tract-level data**: ACS tract estimates have larger margins of error than county; implement MOE screening (drop tracts with MOE > 30% of point estimate). Account for disclosure avoidance in 2020 onward (larger standard errors; consider sensitivity dropping 2020-based estimates). |
+| Per capita income | BEA NIPA | CSV (FRED API) | Annual series; interpolate or use single-year closest to census period. County-level data; match to tracts via crosswalk if tract-level estimates unavailable. |
+| Industry employment | ACS 5-yr (tract level) | CSV | Extracted from IPUMS along with poverty/income variables at tract resolution. |
+| Fire perimeters & treatment assignment | MTBS (USGS) | Shapefile/GeoJSON | Reuse `wildfire-finance/data/raw/mtbs_perims/`. **Spatial join with tract boundaries**: Compute % tract area burned for each tract-fire intersection (supports dose-response analysis). |
+| **WFP 2012** (primary matching) | USFS | GeoTIFF (270m resolution, ESRI Grid) | Shared from wildfire-finance project: `wildfire-finance/data/raw/WHP/Data/wfp_2012_continuous/`. **Native 270m resolution used directly** (do NOT aggregate to county/tract; instead, compute tract-level summaries: mean WFP percentile, % area per hazard quintile, raster distance to high-hazard pixels). **Predetermined for fires from 2013 onward** (finalized before 2013 fire season). |
+| WHP 2014 (robustness) | USFS | GeoTIFF (270m resolution) | Shared from wildfire-finance. NOT predetermined for 2013–2014 fires; use in robustness checks only. |
+| Census tract boundaries | Census TIGER | Shapefile | 2010 Census tract definitions (stable boundaries for panel construction). |
+| Baseline covariates (2012 ACS) | ACS, USDA RUCC | CSV / GIS | From IPUMS at tract level; for PS-IPW matching and balance diagnostics. RUCC at county level; merge to tracts via county FIPS. |
+| Smoke buffer (100 km) | Derived from MTBS + tract geom | Shapefile / Parquet | Construct: buffer MTBS perimeters to 100 km; flag tracts intersecting buffer. Regenerate from MTBS rather than reuse county-level version (finer spatial precision). |
 
 ---
 
 ## 4. Methods: Implementation Roadmap
 
-### 4.1 Phase 1: Data Acquisition & Cleaning (Weeks 1–3)
+### 4.1 Phase 1: Data Acquisition, Raster Processing, & Cleaning (Weeks 1–4)
 
 **Deliverables**:
-- `acs_2007_2022_county_clean.parquet`: Poverty, income, employment, net migration by county-census-period (2007, 2012, 2017, 2022)
-- `fire_treatment_assignment.parquet`: County treatment year (g=2017, g=2022, or g=0 for never-treated); extensive and intensive margins
-- `whp_2012_county.parquet`: County-level WFP 2012 percentile (from raster; reuse from wildfire-finance if available)
-- `matching_covariates_2012.parquet`: Pre-treatment baseline covariates (2012 ACS: poverty, income, demographics; RUCC; population)
-- `smoke_buffer_100km.parquet`: Counties within 100 km of any MTBS fire perimeter (exclusion list)
-- `analysis_sample_final.parquet`: Balanced panel (~3,100 counties × 4 periods ≈ 12,400 obs) after smoke exclusion and population minimum restriction (pop ≥ 1,000)
+- `acs_2012_2022_tract_clean.parquet`: Poverty, income, employment, net migration by tract-census-period (2012, 2017, 2022); includes ACS MOE screening (MOE ≤ 30% of point estimate); population ≥ 500
+- `fire_treatment_assignment_tract.parquet`: Tract treatment year (g=2017, g=2022, or g=0 for never-treated); extensive (binary) and intensive (fire count, acres burned, % tract burned) margins
+- `whp_2012_tract_raster_summaries.parquet`: Tract-level raster summaries computed from 270m WFP 2012 pixels:
+  - Mean WFP percentile (0–100)
+  - % tract area in each WFP hazard quintile (5 indicators)
+  - Raster distance to nearest high-hazard pixel (WFP > 75th percentile)
+  - Raster-based continuous treatment proxy (mean WFP percentile)
+- `matching_covariates_2012_tract.parquet`: Pre-treatment baseline covariates (2012 ACS at tract level: poverty, income, demographics; county-level RUCC; population)
+- `smoke_buffer_100km_tract.parquet`: Tracts within 100 km of any MTBS fire perimeter (exclusion flag)
+- `analysis_sample_final_tract.parquet`: Unbalanced panel (70,000 tracts × 3 periods) after smoke exclusion, MOE screening, and population ≥ 500 restriction; expected ~40,000–50,000 tracts × 3 periods
+
+**Raster processing workflow** (new in tract-level design):
+1. **Load WFP 2012 GeoTIFF** (270m resolution): Read `wildfire-finance/data/raw/WHP/Data/wfp_2012_continuous/` using `rasterio` and `geopandas`
+2. **Tract-raster intersection**: For each Census 2010 tract polygon, extract all 270m pixels overlapping tract; compute per-pixel WFP value (0–100 percentile scale)
+3. **Aggregate to tract level**: 
+   - Mean WFP percentile across pixels in tract
+   - % pixel area in each hazard quintile (0–20, 20–40, 40–60, 60–80, 80–100)
+   - Distance from tract centroid to nearest pixel with WFP > 75th percentile
+4. **Fire-tract spatial join**: Intersect MTBS fire polygons with tract boundaries; compute % tract area within each fire perimeter
+5. **Output**: Parquet with tract-level raster and fire exposure summaries
 
 **Quality checks**:
-- Flag missing values: if ACS estimate has margin of error > 30% of point estimate, flag as unreliable
-- Document disclosure avoidance impact: if 2020-based ACS estimates available, report whether dropping them changes results (sensitivity check)
-- Cross-check BEA per-capita income against ACS median income for directional consistency
-- Verify fire treatment assignment: sample fires from each cohort; manually inspect GIS county-fire overlap (edge cases: fires spanning state lines, large fires touching many counties)
-- Confirm smoke buffer: spot-check 10–20 fire perimeters and 100 km buffer geometry in GIS
+- ACS tract-level data: Flag and drop tracts with MOE > 30% of poverty-rate point estimate; document count dropped
+- Raster processing: Spot-check 50 tracts; visually verify WFP pixel extraction and aggregation in GIS
+- Cross-check BEA per-capita income (county-level) against ACS median income (tract-level, aggregated to county) for directional consistency
+- Verify fire treatment assignment: Sample 20–30 tracts from each cohort; manually inspect GIS tract-fire overlap (edge cases: large fires spanning multiple tracts, tracts on state lines)
+- Confirm smoke buffer: Spot-check 10–20 fire perimeters and 100 km tract exclusion zones in GIS
+- Document disclosure avoidance impact: If 2020-based ACS estimates available, report whether dropping them changes results (sensitivity check)
 
-### 4.2 Phase 2: Propensity-Score Matching & Balance Diagnostics (Week 4)
+### 4.2 Phase 2: Propensity-Score Matching & Balance Diagnostics (Weeks 4–5)
 
-**Approach** (following wildfire-finance design):
+**Approach** (tract-level with raster-based matching covariates):
 
 1. **Propensity score model**: Logistic regression of treatment (g ≠ 0) on:
-   - WFP 2012 quintile (5 indicators)
-   - Pre-2013 fire indicator and pre-2013 log acres burned
-   - Pre-treatment covariates (2012 ACS: poverty rate, median HH income, population density, % 65+; USDA RUCC; population size)
+   - **Raster-based WFP 2012 covariates** (270m resolution):
+     - Mean WFP 2012 percentile (continuous, 0–100)
+     - % tract area in each WFP hazard quintile (5 indicators)
+     - Raster distance to nearest high-hazard pixel
+   - **Pre-2013 fire indicators**: Any fire 1984–2012, log total acres burned 1984–2012
+   - **Pre-treatment covariates (2012 ACS tract-level)**: Poverty rate, median HH income, population density, % age 65+, % race/ethnicity groups; USDA RUCC (county-level); tract population
    - Outcome: $\text{Pr}(\text{treated} | X)$
 
 2. **Inverse-probability weights** (IPW):
-   - Treated counties: $w_i = 1$
-   - Control counties: $w_i = \hat{e}_i / (1 - \hat{e}_i)$ (where $\hat{e}_i$ = estimated propensity score)
+   - Treated tracts: $w_i = 1$
+   - Control tracts: $w_i = \hat{e}_i / (1 - \hat{e}_i)$ (where $\hat{e}_i$ = estimated propensity score)
    - Trim at 99th percentile of weights to stabilize variance
+   - **Rationale for raster covariates**: 270m resolution captures fine-grained hazard variation within counties; improved matching precision vs. county-level WFP aggregation
 
 3. **Balance diagnostics**:
-   - Compute standardized mean differences (SMD) before and after IPW reweighting
+   - Compute standardized mean differences (SMD) before and after IPW reweighting for all covariates
    - Target: SMD < 0.1 for all covariates after reweighting
    - Report effective sample size (ESS) of reweighted control group (sanity check on common support)
-   - Plot: density of propensity scores, treated vs. control (before and after reweighting)
-   - If ESS << unweighted control N, flag thin common support and discuss implications
+   - Density plots: propensity scores, treated vs. control (before and after reweighting)
+   - If ESS << unweighted control N, flag thin common support; consider CEM matching as alternative
+   - **Tract-level balance**: Verify balance not just on individual covariates but on raster-based summaries (visual inspection of histograms)
 
-### 4.3 Phase 3: Main Estimation — DiD & ATT (Weeks 5–6)
+### 4.3 Phase 3: Main Estimation — Staggered DiD & ATT (Weeks 5–7)
 
-**Estimation approach** (Simple Difference-in-Differences with Multiple Pre-Periods for Parallel Trends Testing):
+**Estimation approach** (Callaway & Sant'Anna 2021 staggered DiD with raster-matched controls):
 
-Use **R package `fixest::feols()`** or standard TWFE with inverse-probability weights:
+Use **R package `did::att_gt()`** (Callaway & Sant'Anna implementation) with inverse-probability weights:
 
-1. **Main DID estimation**:
+1. **Main C&S DiD estimation (event-study)**:
    - Outcome: poverty rate (primary), median income, employment rate, net migration (secondary)
-   - Treatment: binary indicator = 1 if county has ≥1 fire in 2012–2015, 0 if never-treated
-   - Periods: 4 (pre-1: 1990; pre-2: 2000; pre-3: 2007–2011; post: 2015–2019)
-   - Specification: outcome ~ treated × post + county FE + period FE + covariates, weights = IPW
-   - Coefficient $\tau$ (treated × post) = **ATT** (main estimand)
-   - SE: clustered at county level; 95% CIs via bootstrap (1,000 replicates)
+   - Treatment: Binary = 1 if tract has ≥1 fire in treatment window (g=2017 or g=2022), 0 if never-treated
+   - Cohorts: g=2017 (first fire 2013–2016), g=2022 (first fire 2017–2021), g=0 (never-treated)
+   - Periods: 2012, 2017, 2022 (ACS 5-year estimates)
+   - Specification: $\text{Outcome}_{i,t} = \alpha_i + \lambda_t + \sum_{h \neq -1} \beta_h \cdot \mathbb{1}[\text{g}_i = t - h] + X_{i,\text{pre}} \gamma + \epsilon_{i,t}$
+   - Weights: Inverse-probability weights (from Phase 2 PS-IPW matching on raster covariates)
+   - SE: Clustered at tract level; 95% CIs via bootstrap (1,000 replicates)
 
-2. **Formal parallel trends testing**:
-   - **Three pre-treatment observations (1990, 2000, 2007–2011)** allow formal testing of parallel trends
-   - Estimate treatment coefficients for each pre-period: $\tau_{1990}, \tau_{2000}, \tau_{2007-2011}$
-   - Null hypothesis: $\tau_{1990} = \tau_{2000} = \tau_{2007-2011} = 0$ (no pre-treatment effect)
-   - Visual inspection: Plot coefficients by period; should see zero trend pre-treatment, jump post-treatment
-   - If pre-treatment coefficients near zero and parallel, supports parallel trends assumption (conditional on covariates)
-   - If pre-treatment coefficients trending or diverging, suggests differential pre-trends → flag as robustness sensitivity
+2. **Event-study coefficients and pre-trends testing**:
+   - Estimate $\beta_h$ for relative time $h \in \{-2, -1, 0, 1, 2, \ldots, 7\}$ post-fire
+   - **Pre-trends ($h < 0$)**: Report coefficients with 95% CIs; should be statistically and economically negligible
+   - **Post-trends ($h \geq 0$)**: Report full trajectory; effects may persist, fade, or amplify
+   - Visual inspection: Event-study plots with pre/post trends clearly marked; shaded confidence bands
+   - Interpretation: If $\beta_{-1}$ and $\beta_{-2}$ near zero and jointly not significant, supports parallel trends
 
-3. **Aggregate ATT**:
-   - Point estimate: $\widehat{\text{ATT}} = \hat{\tau}$ (coefficient on treated × post)
-   - Report 95% CI, effect size (e.g., percentage point change in poverty rate), and N observations
-   - Interpret economically: "A large fire in 2012–2016 increased poverty rate by X percentage points by 2016–2019"
+3. **Aggregate ATT** (post-fire average):
+   - Compute: $\widehat{\text{ATT}} = \frac{1}{k} \sum_{h=0}^{k} \beta_h$ (simple average of post-treatment $\beta_h$)
+   - Report: Point estimate, 95% CI, economic magnitude (e.g., percentage points for poverty rate; dollars for income), N observations
+   - Interpret: "Exposure to large fire increased poverty rate by X percentage points (95% CI: [a, b]) in treated tracts relative to matched controls"
+   - **Robustness:** Also report aggregate ATT weighted by time-at-risk (alternative aggregation)
 
 4. **Extensive vs. intensive margin**:
-   - **Extensive (binary)**: Main specification above (any fire in 2012–2016)
-   - **Intensive (dose-response)**: Replace binary treatment with continuous:
-     - Fire count (1, 2, 3+ fires) → estimate ATT per additional fire
-     - Total acres burned (in 10,000-acre units) → estimate ATT per 10,000 acres
-   - Report both; compare magnitudes to assess dose-response relationship
+   - **Extensive (binary)**: Main specification above (any fire in treatment window)
+   - **Intensive (dose-response)**: Estimate separate C&S models with:
+     - Fire count (1, 2, 3+ fires) replacing binary indicator → ATT per additional fire
+     - Total acres burned (normalized to 10,000-acre units) replacing binary → ATT per 10,000 acres
+     - WFP 2012 raster intensity (mean WFP percentile) as continuous treatment proxy
+   - Report all three; compare magnitudes to assess dose-response relationship
+   - **Hypothesis**: If causal fire-poverty linkage real, intensive-margin ATTs should be proportional to extensive-margin ATT
 
-5. **Mediation analysis (net-migration)**:
-   - **Step 1**: Estimate ATT on net-migration rate (same DID spec as poverty)
-   - **Step 2**: Regress poverty on fire treatment AND net-migration (to get mediator coefficient)
-   - **Step 3**: Decompose: Total ATT = Direct effect (controlling for migration) + Indirect effect (migration-mediated)
+5. **Mediation analysis (net-migration as mediator)**:
+   - **Step 1**: Estimate C&S ATT on net-migration rate (same model as poverty; primary outcome is net-migration)
+   - **Step 2**: Regress poverty on fire treatment AND net-migration in separate C&S model (to get mediator coefficient)
+   - **Step 3**: Decompose: Total ATT(poverty) = Direct effect (controlling for migration) + Indirect effect (migration-mediated)
+     - Indirect = ATT(migration) × coefficient(migration → poverty)
+     - Direct = Total ATT − Indirect
    - **Interpret**: 
-     - Large indirect effect → out-migration is key mechanism (compositional effect)
+     - Large indirect effect (% of total) → out-migration is key mechanism (compositional effect dominates)
      - Small indirect effect → income effects dominate (welfare loss mechanism)
-   - **Flag**: Mediation estimates are sensitive to measurement error in migration variable; treat exploratory
+   - **Caveat**: Mediation estimates are sensitive to measurement error in ACS migration variable; interpret as exploratory
 
-### 4.4 Phase 4: Robustness & Sensitivity Checks (Week 7)
+### 4.4 Phase 4: Robustness & Sensitivity Checks (Weeks 7–8)
 
-**Organized by identification threat** (simple DID design):
+**Organized by identification threat** (staggered DiD design with raster matching):
 
 | Threat | Robustness Test | Rationale |
 |--------|-----------------|-----------|
+| **Raster matching precision** | Re-estimate C&S using (a) county-level WFP 2012 quintile only (pre-update design), (b) full raster covariates (current) | Verify that finer spatial resolution (270m raster) improves balance and reduces ATT bias vs. county-level matching. Compare ATT magnitudes. |
 | **Smoke spillover** | Vary geographic exclusion radius: 50 km, 100 km (baseline), 150 km | If ATT stable across radii, smoke spillover exclusion not driving results. |
 | **Fire size threshold** | Vary minimum MTBS acres: 500, 1,000 (baseline), 2,000 | Tests sensitivity to fire definition; controls for definitional robustness. |
-| **Treatment window timing** | Shift treatment year: fires 2011–2015, 2012–2016 (baseline), 2013–2017 | Tests whether results depend on exact treatment window boundaries. |
-| **Placebo / falsification test** | Use pre-period outcome (2007–2011) as dependent variable; assign fires to 2012–2016 (same as treatment) | If ATT ≈ 0 on pre-period outcome, supports no confounding from time trends. (Note: technically not a placebo since same outcome, but tests whether fires pre-treat.) |
-| **Specification: add regional controls** | Add state FE; add census division FE | Tests whether results robust to regional-level confounds. |
-| **Specification: exclude ACS 2020 onward** | Drop any ACS estimates with 2020+ data (to avoid differential privacy); re-estimate on 2007–2019 window only | Tests sensitivity to ACS disclosure avoidance introduced 2020+. |
-| **Sample: population restriction** | Drop counties with pop < 500 or pop < 5,000 (vs. baseline 1,000) | Very small counties have unreliable ACS estimates. |
-| **Sample: stricter never-treated** | Exclude counties with any fire in pre-treatment period (2007–2011) from controls | More conservative control definition (only truly never-exposed counties). |
-| **Sample: drop CA, OR** | Exclude California and Oregon (highest fire density) | Tests whether results CA/OR-driven; broader generalizability check. |
-| **Matching robustness: CEM** | Coarsened exact matching (CEM) on WFP quintiles + baseline poverty bins (alternative to PS-IPW) | Checks whether PS-IPW balance results are robust to alternative matching approach. |
-| **Dose-response** | Estimate ATT per fire (fire count: 1, 2, 3+) and per 10,000 acres burned | Tests whether effects scale with exposure intensity. |
+| **Treatment window timing** | Shift cohort boundaries: fires 2012–2015, 2013–2016 (baseline), 2013–2017 | Tests whether results depend on exact treatment window boundaries. |
+| **Placebo / falsification test** | Use pre-2013 fires assigned as "treatment"; estimate C&S ATT on outcomes post-2017 (should be ≈ 0) | If ATT ≈ 0 for pre-fires, supports no confounding from pre-trends. |
+| **Specification: regional FE** | Add state × period FE; add census division × period FE | Tests whether results robust to region-specific time trends. |
+| **Specification: exclude 2020+ ACS** | Drop any estimates using 2020 Census data (differential privacy); re-estimate on 2012–2017 window only | Tests sensitivity to ACS disclosure avoidance introduced 2020+. |
+| **Sample: tract MOE threshold** | Vary MOE screening: drop if MOE > 20%, 30% (baseline), 40% of point estimate | Tests sensitivity to ACS data quality; flagged to researchers as exploratory. |
+| **Sample: tract population minimum** | Drop tracts with pop < 300, < 500 (baseline), < 1,000 | Tests whether results robust to different tract-size thresholds. |
+| **Sample: stricter never-treated** | Exclude tracts with any fire in 1984–2012 from controls | More conservative control definition (only truly never-exposed tracts). |
+| **Sample: regional drop** | Exclude tracts in CA/OR/WA (highest fire density) vs. Eastern tracts | Tests whether results CA/OR/WA-driven; broader US generalizability check. |
+| **Matching robustness: CEM** | Coarsened exact matching (CEM) on WFP quintiles + baseline poverty bins (alternative to PS-IPW) | Checks whether PS-IPW balance results robust to alternative matching approach. |
+| **Heterogeneity-robust estimator** | Run Sun & Abraham (2021) estimator alongside C&S | Tests whether aggregate ATT robust to treatment effect heterogeneity across cohorts and time. |
+| **Dose-response (intensive margin)** | Estimate C&S ATT separately for: fire count (1, 2, 3+), acres burned (per 10k acres), WFP intensity (per percentile) | Tests whether effects scale with exposure intensity (supports causal fire-poverty linkage). |
 
 ### 4.5 Phase 5: Heterogeneous Effects Analysis (Week 8)
 
-**Subgroup analysis** (limited by power; emphasize exploratory nature):
+**Subgroup analysis** (exploratory; census tracts allow larger subgroups than county design):
 
 | Dimension | Subgroups | N (approx.) | Rationale |
 |-----------|-----------|---|-----------|
-| **Census region** | South, Midwest, Northeast, West | ~750 each | Fire regimes differ by region (Western fires more common, Eastern more rare; may trigger different economic response) |
-| **Baseline poverty** | High (>20%), Medium (10–20%), Low (<10%) | ~1,000 each | Policy interest: do fires hit poor counties harder? |
-| **Fire frequency** | 0 fires (never), 1 fire, 2+ fires | ~2,100 / 700 / 300 | Dose-response: do repeated fires compound effects? |
-| **Time period** | Fires 2013–2016 (g=2017), Fires 2017–2021 (g=2022) | ~630 / 370 | Temporal heterogeneity: do recent fires (when adaptation awareness higher) have smaller effects? |
+| **Census region** | South, Midwest, Northeast, West | ~8,000–12,000 tracts each | Fire regimes differ by region; Western fires more common, Eastern more rare. Economic response mechanisms may differ. |
+| **Baseline poverty** | High (>20%), Medium (10–20%), Low (<10%) | ~15,000–20,000 tracts each | Policy interest: do fires disproportionately harm low-income tracts? |
+| **Baseline WFP hazard** | High (>75th %), Medium (50–75th %), Low (<50th %) | ~15,000 tracts each | Test whether tracts with pre-existing high hazard show different fire-poverty effects. |
+| **Tract urbanicity** | Urban, suburban, rural (via RUCC) | ~10,000 / 15,000 / 15,000 | Are rural tracts more vulnerable to fire-driven economic disruption? |
+| **Fire frequency** | 1 fire, 2+ fires | ~1,500 / 300 | Dose-response: do repeated fires compound economic effects? |
+| **Cohort** | Fires 2013–2016 (g=2017), Fires 2017–2021 (g=2022) | ~800 / 500 | Temporal heterogeneity: do recent fires (adaptation awareness higher) have smaller effects? |
 
 **Estimation**:
-- Re-estimate C&S event-study separately for each subgroup
-- Report $\widehat{\text{ATT}}$ and 95% CI by subgroup
-- **Statistical testing**: Do NOT formally test subgroup differences (low power; inflates Type I error). Instead, report point estimates and intervals; note overlaps or separation as descriptive finding.
-- Flag: "Subgroup estimates are exploratory due to limited sample size per group; interpret with caution."
+- Re-estimate C&S event-study separately for each subgroup (same equation, subset data)
+- Report $\widehat{\text{ATT}}$ and 95% CI by subgroup; visual comparison (side-by-side event-study plots if possible)
+- **Statistical testing**: Do NOT formally test subgroup differences (multiple comparison problem). Instead, report point estimates and CIs; note overlaps or separation as descriptive finding.
+- **Interpretation caveat**: "Subgroup estimates are exploratory and should be interpreted descriptively. Point estimate differences do not imply statistically significant heterogeneity without formal testing."
 
 ---
 
@@ -515,93 +565,113 @@ Minor deviations (exploratory subgroup analysis, additional robustness not pre-r
 wildfire-poverty-analysis/
 ├── data/
 │   ├── raw/                          # Original downloads (git-ignored)
-│   │   ├── acs_extracts/             # IPUMS 5-year ACS extracts (2007–2022 estimates)
+│   │   ├── acs_extracts/             # IPUMS 5-year ACS extracts (2012, 2017, 2022 at tract level)
 │   │   ├── mtbs_perimeters/          # Symlink or copy from wildfire-finance/data/raw/mtbs_perims/
-│   │   ├── whp_rasters/              # WFP 2012 & WHP 2014 rasters (from wildfire-finance)
-│   │   └── county_shapefiles/        # TIGER county boundaries
+│   │   ├── whp_rasters/              # WFP 2012 & WHP 2014 GeoTIFFs at native 270m resolution (from wildfire-finance)
+│   │   ├── tract_shapefiles/         # TIGER Census 2010 tract boundaries (all lower-48)
+│   │   └── county_shapefiles/        # TIGER county boundaries (for RUCC merge)
 │   ├── processed/                    # Analysis-ready datasets
-│   │   ├── acs_2007_2022_county_clean.parquet      # Poverty, income, employment, net migration
-│   │   ├── fire_treatment_assignment.parquet       # Treatment cohorts (g=2017, g=2022, g=0)
-│   │   ├── whp_2012_county.parquet                 # County-level WFP 2012 percentile
-│   │   ├── matching_covariates_2012.parquet        # Pre-treatment baseline covariates
-│   │   ├── smoke_buffer_100km.parquet              # Exclusion list (100 km smoke buffer)
-│   │   └── analysis_sample_final.parquet           # Final balanced panel (all lower-48, 4 periods)
+│   │   ├── acs_2012_2022_tract_clean.parquet          # Poverty, income, employment, net migration (tract × 3 periods); MOE-screened
+│   │   ├── fire_treatment_assignment_tract.parquet    # Tract treatment year (g=2017, g=2022, g=0); extensive + intensive margins
+│   │   ├── whp_2012_tract_raster_summaries.parquet    # Tract-level aggregates from 270m WFP 2012 raster (mean %, quintile %, distance)
+│   │   ├── matching_covariates_2012_tract.parquet     # Pre-treatment baseline covariates (2012 ACS tract-level)
+│   │   ├── smoke_buffer_100km_tract.parquet           # Tract-level smoke exclusion flag (100 km buffer)
+│   │   └── analysis_sample_final_tract.parquet        # Final unbalanced panel (~40k–50k tracts × 3 periods)
 │   └── metadata/
-│       ├── county_fips_names.csv
-│       ├── fire_cohort_counts.csv                  # N counties by g=2017, g=2022, g=0
-│       ├── sample_restrictions_log.txt             # Doc all exclusions with counts
-│       └── data_dictionary.md
+│       ├── tract_fips_names.csv
+│       ├── fire_cohort_counts_tract.csv               # N tracts by g=2017, g=2022, g=0
+│       ├── sample_restrictions_log.txt                # Doc all exclusions with counts (MOE, pop, smoke)
+│       ├── raster_processing_log.txt                  # Document WFP 2012 raster extraction and tract-level aggregation
+│       └── data_dictionary.md                         # Variable definitions and sources (tract-level specifics)
 ├── code/
 │   ├── 01_build/
 │   │   ├── __init__.py
-│   │   ├── 01_whp_to_county.py       # Raster → county WFP 2012 (reuse from wildfire-finance)
-│   │   ├── 02_mtbs_to_county.py      # Fire perimeters → treatment assignment (reuse/adapt)
-│   │   ├── 03_acs_pull.py            # IPUMS ACS extraction (poverty, income, migration, employment)
-│   │   ├── 04_matching_covariates.py # Baseline (2012) covariate assembly
-│   │   ├── 05_smoke_buffer.py        # 100 km exclusion zone construction (reuse)
-│   │   └── 06_panel_assemble.py      # Final balanced panel assembly
+│   │   ├── 01_whp_to_tract.py        # **NEW**: Raster (270m) → tract-level WFP 2012 summaries (mean, quintiles, distance)
+│   │   ├── 02_mtbs_to_tract.py        # **UPDATED**: Fire perimeters → tract treatment assignment; compute % tract area burned
+│   │   ├── 03_acs_pull.py            # IPUMS ACS extraction (tract-level; poverty, income, migration, employment; 2012, 2017, 2022)
+│   │   ├── 04_matching_covariates.py # Baseline (2012) covariate assembly at tract level
+│   │   ├── 05_smoke_buffer.py        # 100 km exclusion zone construction (updated for tract-level buffering)
+│   │   ├── 06_moe_screening.py       # **NEW**: ACS MOE screening; drop tracts with MOE > 30% of poverty estimate
+│   │   └── 07_panel_assemble.py      # Final unbalanced panel assembly (tract × period)
 │   ├── 02_matching/
 │   │   ├── __init__.py
-│   │   ├── 01_ps_matching.R          # Propensity score & IPW (R script)
-│   │   └── 02_balance_table.R        # Balance diagnostics post-IPW
+│   │   ├── 01_ps_matching.R          # Propensity score & IPW with raster covariates (tract-level)
+│   │   └── 02_balance_table.R        # Balance diagnostics post-IPW (including raster-based covariates)
 │   ├── 03_analysis/
 │   │   ├── __init__.py
-│   │   ├── 01_cs_main.R              # Callaway & Sant'Anna main (extensive + intensive)
-│   │   ├── 02_event_study.R          # Event-study plot and dynamic effects
-│   │   ├── 03_mediation_analysis.R   # Net-migration as mediator
-│   │   ├── 04_robustness.R           # Robustness checks (smoke radius, fire threshold, etc.)
+│   │   ├── 01_cs_main.R              # Callaway & Sant'Anna (staggered, tract-level)
+│   │   ├── 02_event_study.R          # Event-study $\beta_h$ and aggregate ATT; event-study plots
+│   │   ├── 03_mediation_analysis.R   # Net-migration as mediator (decompose poverty effects)
+│   │   ├── 04_robustness.R           # Robustness checks (smoke radius, fire threshold, ACS 2020+, MOE threshold, raster matching precision, etc.)
 │   │   ├── 05_sun_abraham.R          # Sun-Abraham heterogeneity-robust estimator
-│   │   ├── 06_heterogeneity.R        # Subgroup estimates (region, baseline poverty, fire frequency)
+│   │   ├── 06_heterogeneity.R        # Subgroup estimates (region, urbanicity, baseline poverty/WFP, fire frequency, cohort)
 │   │   └── 07_placebo_falsification.R # Pre-2013 fire assignment falsification test
 │   ├── 04_output/
 │   │   ├── __init__.py
 │   │   ├── 01_tables.R               # Generate LaTeX and CSV regression tables
-│   │   ├── 02_figures.py             # Publication-ready figures (300 DPI)
-│   │   └── 03_plot_styles.py         # Matplotlib defaults (fonts, colors, etc.)
+│   │   ├── 02_figures.py             # Publication-ready figures (300 DPI); event-study plots, PS density, map
+│   │   └── 03_plot_styles.py         # Matplotlib defaults (fonts, colors, consistent styling)
 │   └── main.py                       # Top-level pipeline orchestration
 ├── tests/
 │   ├── __init__.py
-│   ├── test_data_assembly.py         # Test data loading and merging
-│   ├── test_sample_restrictions.py   # Verify exclusion logic
-│   └── test_estimation.py            # Unit tests for DiD estimation
+│   ├── test_raster_processing.py     # **NEW**: Test WFP 2012 raster extraction and tract aggregation
+│   ├── test_data_assembly.py         # Test tract-level data loading and merging
+│   ├── test_sample_restrictions.py   # Verify MOE, smoke, population exclusion logic
+│   └── test_estimation.py            # Unit tests for C&S DiD estimation
 ├── notebooks/
-│   ├── 01_eda.ipynb                  # Exploratory: fire, poverty, income distributions
-│   ├── 02_balance_diagnostics.ipynb  # IPW balance visualization
-│   ├── 03_event_study_exploration.ipynb # Dynamic effects exploration
-│   └── 04_heterogeneity_exploration.ipynb # Subgroup results
+│   ├── 01_eda_tract.ipynb            # **UPDATED**: Exploratory tract-level (fire, poverty, income distributions; raster visualization)
+│   ├── 02_raster_exploration.ipynb   # **NEW**: WFP 2012 raster visualization; tract-raster intersection QA
+│   ├── 03_balance_diagnostics.ipynb  # IPW balance visualization (raster-based covariates)
+│   ├── 04_event_study_exploration.ipynb # Dynamic effects exploration (C&S event-study)
+│   └── 05_heterogeneity_exploration.ipynb # Subgroup results (updated for larger tract-level subgroups)
 ├── results/
 │   ├── tables/
-│   │   ├── table_1a_summary_stats_pre_ipw.tex
-│   │   ├── table_1b_summary_stats_post_ipw.tex
-│   │   ├── table_2_main_att.tex
-│   │   ├── table_3_extensive_intensive.tex
-│   │   ├── table_4_robustness.tex
-│   │   ├── table_5_subgroup_heterogeneity.tex
-│   │   └── appendix_*.tex
+│   │   ├── table_1a_summary_stats_pre_ipw.csv
+│   │   ├── table_1b_summary_stats_post_ipw.csv
+│   │   ├── table_2_main_att.csv
+│   │   ├── table_3_extensive_intensive_margins.csv
+│   │   ├── table_4_mediation_analysis.csv
+│   │   ├── table_5_robustness.csv
+│   │   ├── table_6_subgroup_heterogeneity.csv
+│   │   ├── table_sun_abraham_comparison.csv
+│   │   └── appendix_*.csv
 │   ├── figures/
-│   │   ├── figure_1_fires_map.png
+│   │   ├── figure_1_tract_fires_map.png
 │   │   ├── figure_2_event_study_poverty.png
 │   │   ├── figure_3_event_study_income.png
-│   │   ├── figure_4_ps_density.png
-│   │   └── ...
+│   │   ├── figure_4_ps_density_pre_post_ipw.png
+│   │   ├── figure_5_whp_2012_raster_example.png
+│   │   └── (additional robustness plots)
 │   └── rds/
-│       ├── cs_att_main.rds           # C&S ATT object
-│       ├── event_study_coefs.rds     # Event-study $\beta_h$ and CIs
-│       ├── mediation_results.rds     # Mediation analysis output
-│       └── balance_diagnostics.rds
+│       ├── cs_att_main.rds
+│       ├── event_study_coefs.rds
+│       ├── mediation_results.rds
+│       ├── sun_abraham_att.rds
+│       ├── balance_diagnostics.rds
+│       └── robustness_results.rds
 ├── docs/
-│   ├── RESEARCH_PLAN.md              # This file
+│   ├── RESEARCH_PLAN.md              # This file (updated for tract-level + raster design)
 │   ├── LITERATURE_NOTES.md           # Annotated bibliography (populated via /deep-research)
-│   ├── DATA_DICTIONARY.md            # Variable definitions and processing notes
-│   ├── PAP.md                        # Pre-analysis plan (register before analysis)
-│   └── METHODOLOGY_NOTES.md          # Technical details (matching algorithms, DGP assumptions, etc.)
-├── .gitignore                        # Exclude data/raw/, .RData, .rds, *.pyc
+│   ├── DATA_DICTIONARY.md            # Variable definitions, sources, tract-level processing notes
+│   ├── PAP.md                        # Pre-analysis plan (updated for tract-level staggered DiD design)
+│   ├── METHODOLOGY_NOTES.md          # Technical details (raster processing, tract-raster intersection, C&S vs. simple DiD)
+│   └── RASTER_METHODS.md             # **NEW**: Detailed documentation of 270m WFP 2012 raster processing workflow
+├── .gitignore                        # Exclude data/raw/, .RData, .rds, *.pyc, .parquet
 ├── setup.py
-├── requirements.txt                  # Python deps: pandas, geopandas, rasterio, etc.
+├── requirements.txt                  # Python deps: pandas, geopandas, rasterio, rioxarray, etc.
 ├── CLAUDE.md                         # Project-specific coding standards
 ├── README.md
 └── .env.example                      # (Optional) env var template for API keys, paths
 ```
+
+**Key changes from county-level design**:
+- **Unit of analysis**: Census tract (2010 boundaries) instead of county
+- **Sample size**: ~70,000 tracts × 3 periods (~210,000 obs), reduced to ~40,000–50,000 tracts after screening (~120,000–150,000 obs)
+- **Raster processing**: New workflow (`01_whp_to_tract.py`) extracts 270m WFP 2012 pixels and aggregates to tract-level summaries (mean, quintiles, distance)
+- **Matching covariates**: Raster-based (mean WFP percentile, quintile indicators, raster distance) at native 270m resolution, not county-level WFP aggregation
+- **Estimation**: Callaway & Sant'Anna staggered DiD (two cohorts: g=2017, g=2022) instead of single cohort
+- **Data quality**: MOE screening for ACS tract-level estimates (drop if MOE > 30% of point estimate)
+- **Subgroups**: Larger subgroup sample sizes (10,000–20,000 tracts per subgroup) vs. county (750–1,000 per subgroup)
 
 ---
 
@@ -609,16 +679,19 @@ wildfire-poverty-analysis/
 
 | Checkpoint | Criterion | Target Date |
 |-----------|-----------|------|
-| **Data acquisition & cleaning** | All ACS (2007–2011, 2016–2019), MTBS, WFP 2012 datasets loaded; ~3,100 counties × 2 periods (~6,200 obs); missingness <2% | Week 3 |
-| **Treatment assignment** | Single treated cohort (fires 2012–2016) finalized; n_treated ≥ 300 counties; smoke-buffer (100 km) exclusion applied; sample counts documented | Week 3 |
-| **Propensity score matching** | PS-IPW weights computed; balance diagnostics run; SMD < 0.1 all covariates post-IPW; ESS ≥ 100 | Week 4 |
-| **Main DID estimation** | ATT estimate + 95% CI computed for poverty rate (primary outcome) using simple DID with PS-IPW | Week 5 |
-| **All outcomes ATT** | DID estimates reported for: poverty, income, employment, net migration; all with 95% CIs and N obs | Week 5 |
-| **Mediation analysis** | Net-migration ATT computed; indirect and direct effects decomposed; % mediation calculated | Week 6 |
-| **Dose-response (intensive margin)** | ATT per fire count and per 10,000 acres burned; compared to extensive-margin ATT | Week 6 |
-| **Robustness complete** | ≥8 robustness checks run (smoke radius, fire threshold, treatment window timing, placebo, regional FE, pop restriction, CEM matching, dose-response); tabulated | Week 7 |
-| **Heterogeneous effects** | Subgroup analysis (region, CA/OR drop) reported as exploratory; sample sizes flagged | Week 7 |
-| **Manuscript draft** | Introduction, Methods, Results, Discussion, Conclusion written; Tables 1–3 and robustness table embedded | Week 9 |
+| **Raster processing complete** | WFP 2012 GeoTIFF (270m) loaded; tract-level summaries computed (mean percentile, quintile %, distance); output parquet | Week 2 |
+| **Data acquisition & cleaning** | All ACS (2012, 2017, 2022 tract-level), MTBS, WFP 2012 raster loaded; ~70,000 tracts × 3 periods; MOE screening applied (MOE ≤ 30%); pop ≥ 500; expected ~40,000–50,000 tracts | Week 4 |
+| **Treatment assignment** | Staggered cohorts (g=2017, g=2022) finalized; n_treated ≥ 1,200 tracts; smoke-buffer (100 km) exclusion applied; sample counts documented | Week 4 |
+| **Propensity score matching** | PS-IPW weights computed with raster covariates; balance diagnostics run; SMD < 0.1 all covariates post-IPW; ESS ≥ 500 | Week 5 |
+| **Main C&S DiD estimation** | ATT estimate + 95% CI computed for poverty rate (primary outcome) using C&S staggered DID with PS-IPW; event-study $\beta_h$ reported | Week 6 |
+| **All outcomes ATT** | C&S estimates reported for: poverty, income, employment, net migration; event-study plots + aggregates with 95% CIs; N obs | Week 6 |
+| **Mediation analysis** | Net-migration ATT computed; indirect and direct effects decomposed; % mediation calculated | Week 7 |
+| **Dose-response (intensive margin)** | C&S ATT per fire count, per 10,000 acres, and per WFP percentile; compared to extensive-margin ATT | Week 7 |
+| **Robustness complete** | ≥10 robustness checks run (raster matching precision, smoke radius, fire threshold, treatment window, placebo, regional FE, ACS 2020+, MOE threshold, stricter never-treated, CEM); tabulated | Week 8 |
+| **Sun-Abraham heterogeneity check** | Sun & Abraham (2021) estimator run; compared to C&S aggregate ATT | Week 8 |
+| **Heterogeneous effects** | Subgroup analysis (region, urbanicity, baseline poverty, baseline WFP, fire frequency, cohort) reported as exploratory; sample sizes and CI overlaps documented | Week 8 |
+| **Publication-ready output** | All tables at 300 DPI, LaTeX-formatted; figures (event-study plots, PS density, map); full results folder | Week 8 |
+| **Manuscript draft** | Introduction, Methods, Results, Discussion, Conclusion written; Tables 1–4 and robustness embedded; appendix with raster methods | Week 9 |
 | **Final deliverables** | Replication package (code, cleaned data, results); PAP + deviation log; Zenodo/SSRN preprint | Week 10+ |
 
 ---
@@ -627,15 +700,18 @@ wildfire-poverty-analysis/
 
 | Risk | Impact | Mitigation |
 |------|--------|-----------|
-| **Thin common support (national expansion)** | Many high-WFP counties never experience fires; IPW reweighting may reduce effective control pool drastically | Check ESS carefully; report if ESS << unweighted N. Conduct robustness dropping extreme propensity scores. Consider alternative matching (CEM on WFP quintiles). |
-| **ACS disclosure avoidance (2020 onward)** | Differential privacy noise inflates variance; top-coding of income; especially problematic for small geographies | Use 5-year estimates (averaging reduces noise). Conduct sensitivity: (a) drop 2020-based ACS, re-estimate on 2007–2017 period, (b) report whether results change. Flag in limitations. |
-| **Fire-poverty endogeneity (selection on unobservables)** | WFP matching reduces but doesn't eliminate selection bias; counties with latent poverty drivers may sort into high-fire areas | Acknowledge in limitations. WFP is partial adjustment. Interpret ATT as effect conditional on observables, not unconditional causal effect. Propose future IV strategy (e.g., climate-driven fire variation). |
-| **Heterogeneous treatment effects (HTE)** | Callaway & Sant'Anna robust to HTE in aggregation, but subgroup power limited; subgroup estimates unreliable | Pre-register main (aggregate) ATT as primary. Label subgroup estimates exploratory. Emphasize: do NOT formally test subgroup differences. Report point estimates + CIs; note overlaps descriptively. |
-| **MTBS threshold at 1,000 acres** | Limits to consequential fires; small fires excluded; results not generalizable to all wildfire exposures | Clearly state scope condition in Introduction and Limitations. Conduct robustness: lower threshold to 500 acres, re-estimate, report effect magnitude. Trade-off: cleaner ID vs. limited scope. |
-| **Smoke spillover proxy (100 km)** | Actual smoke transport varies by fire size, time of year, wind patterns; 100 km is rough approximation | Vary in robustness: 50 km (conservative), 100 km (baseline), 150 km (permissive). Plot ATT vs. buffer radius; check stability. If unstable, flag smoke exclusion sensitivity. |
-| **Pre-trend significance (Roth 2022 critique)** | Null test of pre-trends underpowered; "non-significant pre-trends" don't validate parallel trends | Do NOT report p-values for pre-trend test. Instead: visualize $\beta_h$ (h<0) with CIs; describe magnitude relative to post-treatment effects. If pre-trends small and slopes parallel (not divergent), interpret as supporting parallel trends. If pre-trends notable, discuss in limitations. |
-| **Interstate migration not captured** | ACS "residence 5 years ago" misses temporary migrants, undocumented populations, and interstate moves within 5-year window | Acknowledge limitation. ACS migration variable is proxy for net migration. Cannot separately identify in vs. out migration. Suggest future work using administrative tax records (IRS 1040 migration data). |
-| **Limited post-fire follow-up (max 7 years)** | g=2022 cohort only has 1 post-treatment observation (2022). Cannot assess longer-term persistence (5-10 years). | Acknowledge in Limitations. Note: as more post-2022 ACS data becomes available, study can be extended. Suggest in Future Work section. For now, results show effects up to 5–7 years post-fire. |
+| **ACS tract-level data quality** | Tract-level ACS estimates have larger MOEs than county-level; sparse rural tracts may be unreliable. ~30% of tracts may fail MOE screening. | Implement MOE screening (drop if MOE > 30% of point estimate); report N tracts excluded. Conduct robustness: vary MOE threshold (20%, 30%, 40%); test stability of results. This is documented in Phase 1 quality checks. |
+| **Thin common support (raster matching)** | Many high-WFP tracts never experience fires; IPW reweighting may reduce effective control pool drastically. Tract-level design increases this risk. | Check ESS carefully (target ≥ 500; flag if << unweighted control N). Conduct robustness: drop extreme propensity scores; check ATT sensitivity. Consider alternative: CEM on WFP raster quintiles. Report if common support is limiting. |
+| **Raster-tract intersection precision** | 270m WFP pixels may not align perfectly with tract boundaries; aggregation to tract-level summaries introduces measurement error. | Conduct spot-checks: verify 50 tracts' raster-tract overlaps in GIS. Test robustness: re-estimate using (a) county-level WFP aggregation (pre-update design), (b) full raster covariates (current). Compare ATTs. If ATT materially changes, raster precision matters; report prominently. |
+| **ACS disclosure avoidance (2020 onward)** | Differential privacy noise inflates variance; especially problematic for small geographies like sparse tracts. | Use 5-year estimates (averaging reduces noise). Conduct sensitivity: (a) drop 2020-based ACS, re-estimate on 2012–2017 period, (b) report whether results change. Flag in limitations if variance materially increases. |
+| **Fire-poverty endogeneity (selection on unobservables)** | WFP raster matching reduces but doesn't eliminate selection bias; tracts with latent poverty drivers may sort into high-WFP areas. | Acknowledge in limitations. Raster matching is partial adjustment. Interpret ATT as effect conditional on observables (WFP + baseline covariates), not causal in unconditional sense. Propose future IV strategy (e.g., climate-driven fire variation, terrain-based instruments). |
+| **Heterogeneous treatment effects (HTE) across cohorts** | Callaway & Sant'Anna robust to HTE in aggregation, but g=2017 and g=2022 cohorts may have different long-term effects. | Run Sun & Abraham (2021) estimator as robustness. Compare C&S aggregate ATT to Sun-Abraham. If materially different, flag HTE as important. Report by-cohort estimates as exploratory. |
+| **Subgroup power (tract-level)** | Larger sample (70k tracts vs. 3k counties) allows larger subgroups, but still limited for rare subgroup combinations. | Report subgroup N's and ESS. Emphasize: subgroup estimates exploratory; do NOT formally test differences. Report point estimates + CIs; note overlaps descriptively. |
+| **MTBS threshold at 1,000 acres** | Limits to consequential fires; small fires excluded; results not generalizable to all wildfire exposures. May exclude majority of fires nationally. | Clearly state scope condition in Introduction and Limitations. Conduct robustness: lower threshold to 500 acres, re-estimate, report effect magnitude change. Trade-off: cleaner ID vs. limited scope. Document how many fires/tracts excluded by 1,000-acre rule. |
+| **Smoke spillover proxy (100 km)** | Actual smoke transport varies by fire size, time of year, wind patterns; 100 km is rough approximation. Tract-level buffering may be imprecise. | Vary in robustness: 50 km (conservative), 100 km (baseline), 150 km (permissive). Plot ATT vs. buffer radius; check stability. If unstable, flag smoke exclusion as identification-critical. Conduct GIS spot-check (10 fires). |
+| **Event-study pre-trends (Roth 2022 critique)** | Null test of $\beta_h$ (h<0) underpowered; "non-significant pre-trends" don't validate parallel trends. | Do NOT report p-values for pre-trend test. Instead: visualize all $\beta_h$ with CIs (include h<0 and h≥0 in one plot). Describe magnitude of pre-trends relative to post-trends. If pre-trends small and parallel (flat, zero-centered), support parallel trends. If divergent or large, discuss implications. |
+| **Net-migration measurement** | ACS "residence 5 years ago" is noisy proxy; misses temporary migrants, undocumented populations. | Acknowledge limitation. ACS migration variable is proxy for net in-migration (net inflow). Cannot separately identify gross in vs. out flows. Mediation results exploratory. Suggest future work: admin tax records (IRS 1040 migration data). |
+| **Limited post-fire follow-up** | g=2022 cohort only has 1 post-treatment period (2022 ACS); cannot assess persistence beyond 5 years. | Acknowledge in Limitations. As post-2022 ACS data released, study can be extended. For now, results show effects up to 5 years post-fire (g=2017) and 1 year (g=2022). Flag g=2022 estimates as preliminary. |
 
 ---
 
@@ -663,40 +739,57 @@ wildfire-poverty-analysis/
 
 ## 11. Next Steps (Before Data Analysis)
 
-1. **Week 0 (this week)**:
-   - [ ] Review this updated RESEARCH_PLAN.md with collaborators; obtain sign-off on design
-   - [ ] Register PAP on OSF, AEA RCT Registry, or SSRN (lock in specifications)
-   - [ ] Run `/deep-research` (lit-review mode) to populate References §10 and ground mechanism story in prior work
+1. **Week 0 (this week — planning + raster setup)**:
+   - [ ] Review this updated RESEARCH_PLAN.md; confirm tract-level + raster design is approved
+   - [ ] Test WFP 2012 raster access from `wildfire-finance/data/raw/WHP/Data/wfp_2012_continuous/`
+   - [ ] Download Census 2010 tract shapefiles (lower-48 US) from TIGER
+   - [ ] Obtain tract-level IPUMS ACS extracts (2012, 2017, 2022); confirm tract-level poverty/income available
+   - [ ] Register updated PAP on OSF, AEA RCT Registry, or SSRN (staggered DiD, tract-level design, raster matching)
 
-2. **Weeks 1–3 (Data Acquisition & Cleaning)**:
-   - [ ] Download ACS 5-year estimates (2007–2022 period) for poverty, income, net migration, employment
-   - [ ] Confirm MTBS fire perimeter data and WFP 2012 raster available (symlink from wildfire-finance or re-acquire)
-   - [ ] Implement `code/01_build/` scripts; generate `analysis_sample_final.parquet`
-   - [ ] Document all sample restrictions with counts; verify n_treated ≥ 600 counties
+2. **Weeks 1–2 (Raster Processing + ACS Tract Acquisition)**:
+   - [ ] Implement `code/01_build/01_whp_to_tract.py`: Load WFP 2012 GeoTIFF (270m); compute tract-level summaries (mean, quintiles, distance)
+   - [ ] Spot-check 50 tracts: verify raster-tract intersection in GIS
+   - [ ] Download/extract tract-level ACS (2012, 2017, 2022); document available variables
+   - [ ] Download MTBS fire perimeters and county RUCC codes
 
-3. **Week 4 (Propensity-Score Matching & Balance)**:
-   - [ ] Implement `code/02_matching/01_ps_matching.R`; compute IPW weights
-   - [ ] Generate balance table; verify SMD < 0.1 all covariates
-   - [ ] Check ESS of reweighted control group; report if < 100
-   - [ ] Visualize propensity score distributions
+3. **Weeks 2–4 (Data Cleaning + Treatment/Control Assembly)**:
+   - [ ] Implement `code/01_build/02_mtbs_to_tract.py`: Tract-fire spatial join; compute % tract area burned
+   - [ ] Implement `code/01_build/03_acs_pull.py`: Load tract ACS; flag missing/invalid values
+   - [ ] Implement `code/01_build/06_moe_screening.py`: Drop tracts with MOE > 30% poverty estimate; document N dropped
+   - [ ] Implement `code/01_build/04_matching_covariates.py`: Baseline (2012) covariates; RUCC merge
+   - [ ] Implement `code/01_build/05_smoke_buffer.py`: 100 km buffer around fire perimeters; flag excluded tracts
+   - [ ] Implement `code/01_build/07_panel_assemble.py`: Final unbalanced panel; document sample counts by cohort (g=2017, g=2022, g=0)
+   - [ ] Output: `analysis_sample_final_tract.parquet`; verify n_treated ≥ 1,200 tracts
 
-4. **Weeks 5–7 (Estimation & Robustness)**:
-   - [ ] Implement `code/03_analysis/01_cs_main.R`; estimate C&S ATT for all outcomes
-   - [ ] Generate event-study plot and table; report pre-trends visually
-   - [ ] Implement mediation analysis (`03_mediation_analysis.R`); quantify indirect effect
-   - [ ] Run all 6+ robustness checks (`code/03_analysis/04_robustness.R`)
-   - [ ] Generate heterogeneity tables (subgroups, extensive vs. intensive); flag exploratory nature
+4. **Week 5 (Propensity-Score Matching & Balance with Raster Covariates)**:
+   - [ ] Implement `code/02_matching/01_ps_matching.R`: Logistic PS model on raster covariates (mean WFP, quintile %, distance) + fire history + baseline covariates
+   - [ ] Compute IPW weights; trim 99th percentile
+   - [ ] Implement `code/02_matching/02_balance_table.R`: SMD before/after; target SMD < 0.1
+   - [ ] Check ESS of reweighted control group; target ESS ≥ 500
+   - [ ] Visualize: propensity score density (treated vs. control, pre/post reweighting), raster covariate distributions
 
-5. **Week 8 (Output & Visualization)**:
-   - [ ] Generate publication-ready tables (LaTeX, 300 DPI)
-   - [ ] Generate figures (event-study plot, PS density, map)
-   - [ ] Compile all results into `results/` folder
+5. **Weeks 5–7 (Estimation + Mediation + Robustness)**:
+   - [ ] Implement `code/03_analysis/01_cs_main.R`: C&S staggered DiD (tract-level, IPW); estimate $\beta_h$ and aggregate ATT
+   - [ ] Generate event-study plots (poverty, income, employment, net migration); mark pre/post regions
+   - [ ] Implement `code/03_analysis/03_mediation_analysis.R`: Decompose poverty ATT via net-migration mediator
+   - [ ] Implement `code/03_analysis/04_robustness.R`: Run 10+ robustness specs (raster matching precision, smoke radius, MOE threshold, fire threshold, placebo, etc.)
+   - [ ] Implement `code/03_analysis/05_sun_abraham.R`: Sun & Abraham (2021) heterogeneity-robust estimator as robustness
+   - [ ] Implement `code/03_analysis/06_heterogeneity.R`: Subgroup estimates (region, urbanicity, baseline poverty/WFP, fire frequency, cohort); document ESS per subgroup
 
-6. **Weeks 9+ (Writing & Dissemination)**:
-   - [ ] Draft manuscript (Introduction, Methods, Results, Discussion)
-   - [ ] Iterate on peer feedback
-   - [ ] Prepare replication package (data, code, results, PAP-deviations doc)
-   - [ ] Submit to target journal (JUE, RSUE, or AEJ:Applied)
+6. **Week 8 (Publication Output + Heterogeneity Viz)**:
+   - [ ] Implement `code/04_output/01_tables.R`: Generate CSV + LaTeX tables (T1a, T1b, T2, T3, T4, T5, T6, Sun-Abraham comparison)
+   - [ ] Implement `code/04_output/02_figures.py`: Event-study plots, PS density, tract-fire map, WFP 2012 raster example; all 300 DPI
+   - [ ] Compile `results/tables/` and `results/figures/`; verify publication-ready format
+
+7. **Weeks 9+ (Manuscript + Dissemination)**:
+   - [ ] Draft Introduction (hook: within-county heterogeneity, raster-based matching advantage; RQ; contribution)
+   - [ ] Draft Methods (identify variation, estimand, C&S spec, tract-raster matching, threats + mitigations)
+   - [ ] Draft Results (main ATT table, event-study plot, mediation decomposition, extensive vs. intensive margins)
+   - [ ] Draft Robustness section (organized by threat; reference Table 5)
+   - [ ] Draft Discussion (mechanisms, scope—MTBS >1000 acres, raster precision trade-offs, limitations)
+   - [ ] Iterate with peer feedback; finalize manuscript
+   - [ ] Prepare replication package (all code, processed data parquets, results, updated PAP + deviations doc)
+   - [ ] Submit to JUE, RSUE, or AEJ:Applied
 
 ---
 

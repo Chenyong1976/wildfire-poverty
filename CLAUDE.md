@@ -4,32 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Title**: Wildfire Impact on Poverty and Net Migration: A National Study of Economic Displacement (2013–2021)  
-**Status**: Pre-analysis phase; PAP pending  
-**Research Question**: Do large wildfires reduce household incomes and increase poverty rates in affected US counties? What role does population displacement (out-migration) play?  
-**Identification Strategy**: Staggered difference-in-differences (Callaway & Sant'Anna 2021) with WFP 2012 propensity-score matching; regression adjustment on baseline covariates
-**Geographic Scope**: All lower-48 US states (~3,100 counties); national expansion from original Western US focus  
-**Treatment Window**: 2013–2021 (MTBS fires ≥1,000 acres; g=2017 and g=2022 cohorts)  
-**Analysis Period**: 2007–2022 (ACS 5-year estimates, 4 census periods)
-**Key Innovation**: Mediation analysis on net-migration rate to decompose poverty effects into income loss vs. population composition changes
+**Title**: Wildfire Impact on Poverty and Net Migration: A Census-Tract Study with Fine-Grained Spatial Matching (2013–2021)  
+**Status**: Design phase (major revision: county → tract; raster matching at 270m resolution); PAP pending update  
+**Research Question**: Do large wildfires reduce household incomes and increase poverty rates in affected US census tracts? What role does population displacement (out-migration) play? How does within-county heterogeneity in fire exposure affect outcomes?  
+**Identification Strategy**: Staggered difference-in-differences (Callaway & Sant'Anna 2021) with fine-grained raster-based WFP 2012 propensity-score matching (270m resolution)
+**Geographic Scope**: All lower-48 US states (~70,000 census tracts); tract-level resolution (vs. prior county-level design)  
+**Spatial Matching**: WFP 2012 Wildfire Hazard Potential at native 270m resolution; tract-level raster summaries (mean WFP percentile, % area per hazard quintile, distance to high-hazard pixels) used as matching covariates
+**Treatment Window**: 2013–2021 (MTBS fires ≥1,000 acres; staggered cohorts: g=2017 [fires 2013–2016], g=2022 [fires 2017–2021])  
+**Analysis Period**: 2012, 2017, 2022 ACS 5-year estimates (3 periods)
+**Statistical Power**: Tract-level design provides ~70,000 geographic units vs. 3,100 counties; expected 40,000–50,000 tracts after MOE/population screening
+**Key Innovation**: (1) First study to leverage 270m WHP raster for tract-level treatment/control matching; (2) Mediation analysis on net-migration to decompose poverty effects into income loss vs. population composition changes
 
 ---
 
 ## Core Design
 
-- **Sample**: All lower-48 US counties (~3,100); ACS 5-year estimates 2007–2022 (4 census periods)
-- **Treatment**: First large fire (MTBS ≥1,000 acres) in 2013–2021; two cohorts: g=2017 (fires 2013–2016), g=2022 (fires 2017–2021)
+- **Sample**: All lower-48 US census tracts (~70,000); ACS 5-year tract-level estimates 2012, 2017, 2022 (3 periods); after MOE screening (MOE ≤ 30% poverty) and population ≥ 500: ~40,000–50,000 tracts
+- **Treatment**: Staggered—first large fire (MTBS ≥1,000 acres) in treatment window
+  - Cohort g=2017: First fire 2013–2016 (post-treatment observed 2017–2021)
+  - Cohort g=2022: First fire 2017–2021 (post-treatment observed 2018–2022)
+  - g=0: Never-treated (no fires 2013–2021, outside 100 km smoke buffer)
 - **Treatment margins**: 
-  - Extensive: any fire ≥1,000 acres in 2013–2021
-  - Intensive: fire count and total acres burned (dose-response)
+  - Extensive: Binary—any fire ≥1,000 acres in treatment window
+  - Intensive: Fire count, total acres burned, WFP 2012 raster intensity (mean WFP percentile per tract)
 - **Primary outcomes** (in priority order):
   1. Poverty rate (% population below federal poverty line)
   2. Median household income (nominal, 2019 dollars)
   3. Net-migration rate (% moved in – % moved out, past 5 years) **[mediator]**
   4. Employment rate (% civilian labor force employed)
-- **Control group**: Never-treated (no fires 2013–2021) + smoke-excluded (≥100 km from fire perimeter)
-- **Matching strategy**: Propensity-score inverse-probability weights (PS-IPW) on WFP 2012 quintile, pre-2013 fire history, pre-treatment baseline covariates (2012 ACS)
-- **Data sources**: ACS (IPUMS), MTBS fire perimeters, USFS WFP 2012 (primary matching), WHP 2014 (robustness), BEA (alternative income measure)
+- **Control group**: Never-treated (no fires 2013–2021, outside 100 km smoke buffer), balanced on raster-based matching covariates
+- **Matching strategy (NEW)**: Propensity-score inverse-probability weights (PS-IPW) on:
+  - **Raster-based WFP 2012 summaries** (270m resolution): Mean WFP percentile, % area per hazard quintile, distance to high-hazard pixel
+  - Pre-2013 fire history (any large fire 1984–2012, log acres burned)
+  - Pre-treatment baseline covariates (2012 ACS tract-level: poverty, income, demographics; county-level RUCC; population)
+- **Data sources**: ACS (IPUMS, tract-level), MTBS fire perimeters, USFS WFP 2012 (270m raster; primary matching), WHP 2014 (robustness), BEA (annual, merged to tract via county)
 
 ---
 
@@ -43,10 +51,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Net migration**: ACS "residence 1 year ago" and "5 years ago" (available at county). Use 5-year window (matches ACS estimate period). Interpret as net migration proxy; cannot separately identify in vs. out migration.
 
 ### Fire Data (Reuse from wildfire-finance)
-- **MTBS** (Monitoring Trends in Burn Severity): 1984–2022 fires, nationwide. Minimum threshold 1,000 acres (West) / 500 acres (East). For this study, use 1,000 acres nationwide (conservative, matches wildfire-finance).
-- **WFP 2012** (primary matching variable): USFS Wildfire Potential, finalized before 2013 fire season. **Predetermined** for fires from 2013 onward. Native projection EPSG:5070, 270m resolution. Obtain from wildfire-finance: `wildfire-finance/data/raw/WHP/Data/wfp_2012_continuous/`.
-- **WHP 2014** (robustness only): NOT predetermined for 2013–2014 fires (FSim and LANDFIRE inputs extended into 2014 calibration). Use for sensitivity checks only.
-- **Smoke spillover exclusion**: Baseline 100 km buffer (matching wildfire-finance). Vary 50 km, 150 km in robustness. Rationale: proxy for smoke transport; varies by fire size, wind patterns.
+- **MTBS** (Monitoring Trends in Burn Severity): 1984–2022 fires, nationwide. Minimum threshold 1,000 acres nationwide (conservative for this tract-level study; robustness test at 500 acres).
+- **WFP 2012** (primary matching variable): USFS Wildfire Potential, finalized before 2013 fire season. **Predetermined** for fires from 2013 onward. **Native 270m resolution (ESRI Grid, EPSG:5070)**. **CRITICAL: Do NOT aggregate to county/tract boundaries. Instead, extract 270m pixels and compute tract-level summaries**:
+  - Mean WFP 2012 percentile (0–100) across pixels intersecting tract
+  - % tract area in each WFP hazard quintile (0–20, 20–40, 40–60, 60–80, 80–100)
+  - Distance from tract centroid to nearest pixel with WFP > 75th percentile
+  - These tract-level summaries serve as matching covariates in PS-IPW model.
+  - Use `rasterio`, `geopandas` for spatial operations.
+  - Obtain from wildfire-finance: `wildfire-finance/data/raw/WHP/Data/wfp_2012_continuous/`.
+- **WHP 2014** (robustness only): NOT predetermined for 2013–2014 fires. Use for sensitivity checks only.
+- **Smoke spillover exclusion**: Baseline 100 km buffer around MTBS fire perimeters. Exclude tracts within buffer from control group. Vary 50 km, 150 km in robustness. Rationale: proxy for smoke transport; tract-level buffering more precise than county-level.
+- **Fire-tract intersection**: Spatial join MTBS perimeters with tract boundaries; compute % tract area within fire polygon (supports dose-response analysis).
 - **Fire perimeters**: Reuse MTBS data from wildfire-finance: `wildfire-finance/data/raw/mtbs_perims/`. If not available, download from USGS MTBS website.
 
 ### Economic Data
