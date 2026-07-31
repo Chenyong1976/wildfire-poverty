@@ -124,32 +124,36 @@ Decompose total effect on poverty rate into:
 - **Treatment cohorts**: Staggered (two cohorts: g=2017, g=2022)
 - **N**: ~70,000 tracts × 3 periods ≈ ~210,000 observations (unbalanced panel; not all tracts observed in all periods due to ACS sparsity)
 
-**Data quality screen**:
-- Exclude tracts with ACS margin of error > 30% of point estimate for poverty rate (primary outcome)
-- Exclude tracts with population < 500 (ACS threshold for reliable tract-level estimates)
-- Expected final sample: ~40,000–50,000 tracts × 3 periods ≈ ~120,000–150,000 observations
+**Data quality screen** (critical for rural fire-affected tracts):
+- **ACS 5-year estimates only**: Restrict to ACS 5-year estimates (2012, 2017, 2022). ACS 3-year and 1-year estimates are unreliable for rural geographies, and majority of large fires occur in rural areas. 5-year estimates provide adequate sample sizes and representativeness for rural poverty and income measurement.
+- **Margin of error threshold**: Exclude tracts with ACS MOE > 30% of point estimate for poverty rate (primary outcome). For rural tracts with sparse populations, this screen is essential.
+- **Population minimum**: Exclude tracts with population < 500. However, document separately: among included rural tracts (pop 500–2,000), report MOE median/distribution to flag data quality concerns.
+- **Rural tract flag**: Identify rural tracts (RUCC 4–9) separately; assess whether MOE burden is disproportionate. If rural tracts have systematically higher MOE, conduct robustness checks (vary MOE threshold 20%, 30%, 40%).
+- **Expected final sample**: After MOE screening and pop ≥ 500: ~40,000–50,000 tracts × 3 periods ≈ ~120,000–150,000 observations. Document breakdown by urbanicity (rural vs. urban/suburban).
 
-**Statistical power advantage**:
+**Statistical power advantage** (with rural data reliability caveat):
 - Tract-level analysis: 10–15× more observations than county-level (70k tracts vs. 3.1k counties)
 - Finer spatial resolution (270m WHP pixels) improves within-county matching precision
 - Larger sample size enables detection of smaller effects and subgroup heterogeneity
+- **Caveat**: Rural tracts (where fires concentrate) have larger ACS margins of error due to sparse populations. Use 5-year estimates (vs. 3-year/1-year) to maintain representativeness. Trade-off: wider confidence intervals for rural tracts, but valid estimates.
 
 ### Outcome Variables
 
-| Outcome | Data Source | Definition | Rationale |
+| Outcome | Data Source | Definition | Rural Considerations |
 |---------|-------------|-----------|-----------|
-| **Poverty rate** (primary) | ACS 5-yr | % population below federal poverty line | Primary outcome; distributional focus |
-| **Median HH income** | ACS 5-yr | Median household income (nominal, adjusted to 2020$) | Household income measure |
-| **Employment rate** | ACS 5-yr | % civilian labor force employed | Labor market adjustment |
-| **Net-migration rate** (mediator) | ACS 5-yr (residence change) | % population moved into county minus % moved out, in past 5 years | **New: Explicit mediation analysis**; proxy for population displacement |
-| **Per capita income** | BEA Regional Economic Accounts (annual) | Per capita income by county | Cross-check income effects; FRED API |
-| **Industry employment share** | ACS 5-yr or USDA NASS | Share employed in agriculture, forestry, recreation, natural resource extraction | Sector-specific vulnerability |
+| **Poverty rate** (primary) | ACS 5-yr only | % population below federal poverty line | 5-year estimates essential for rural reliability. Expect wider CI in rural subgroups due to sparse sampling; this is valid measurement, not weakness. |
+| **Median HH income** | ACS 5-yr only | Median household income (nominal, adjusted to 2020$) | 5-year estimates recommended. Income measurement less stable in sparse rural populations (high MOE). |
+| **Employment rate** | ACS 5-yr only | % civilian labor force employed | 5-year estimates provide stable estimates of labor force participation in rural areas. |
+| **Net-migration rate** (mediator) | ACS 5-yr only (residence 5-yr ago) | % population moved into tract minus % moved out, in past 5 years | Migration estimates in rural tracts subject to larger MOE. 5-year window appropriate for fire-effect timescale. |
+| **Per capita income** | BEA Regional Econ Accounts (annual) | Per capita income (county-level; matched to tracts via county FIPS) | County-level BEA data more reliable than tract-level estimates. Use for robustness cross-check only. |
+| **Industry employment share** | ACS 5-yr only | Share employed in agriculture, forestry, recreation, natural resource extraction | Important for rural fire-prone tracts (high ag/forest/extraction employment). 5-year sample sizes adequate for rural measurement. |
 
-**Aggregation for census-period analysis**:
-- ACS 5-year estimates are available for 2007–2011, 2012–2016, 2017–2021, 2018–2022 windows (overlapping 5-year rolling averages)
-- **Align to census year**: Assign 5-year ACS estimate to the final year of the estimate (e.g., ACS 2007–2011 labeled as "2011" ≈ "2012 analysis year")
-- For BEA per-capita income (annual), interpolate or use the closest single year to the census period
-- Document this alignment in data dictionary
+**Temporal Specificity for Rural Areas**:
+- **ACS 5-year estimates only**: Use 2012, 2017, 2022 estimates (final years). Do NOT use 3-year or 1-year estimates, even for robustness checks—unreliable for rural tracts.
+- **Align to census year**: Assign 5-year ACS estimate to the final year of the estimate window (e.g., ACS 2012–2016 labeled as "2017" ≈ mid-point analysis year). This is ~3–4 years after fires in g=2017 cohort.
+- **Time gap implications**: With 5-year estimates, pre-treatment baseline (2012 ACS, window 2008–2012) ends ~4–6 years before fires (2013–2016). Post-treatment measurement (2017 ACS, window 2013–2017) captures effects up to 4 years post-fire for early-cohort fires. Acknowledge this measurement-timing constraint in limitations.
+- **BEA per-capita income** (annual): Use single-year values closest to ACS estimate windows for robustness checks; interpolate if needed. County-level only; merge to tracts via county FIPS.
+- **Document**: Timing details in data dictionary and methodology note.
 
 ### Treatment Definition
 
@@ -237,13 +241,18 @@ Decompose total effect on poverty rate into:
 4. **Fire-tract spatial join**: Intersect MTBS fire polygons with tract boundaries; compute % tract area within each fire perimeter
 5. **Output**: Parquet with tract-level raster and fire exposure summaries
 
-**Quality checks**:
-- ACS tract-level data: Flag and drop tracts with MOE > 30% of poverty-rate point estimate; document count dropped
-- Raster processing: Spot-check 50 tracts; visually verify WFP pixel extraction and aggregation in GIS
-- Cross-check BEA per-capita income (county-level) against ACS median income (tract-level, aggregated to county) for directional consistency
-- Verify fire treatment assignment: Sample 20–30 tracts from each cohort; manually inspect GIS tract-fire overlap (edge cases: large fires spanning multiple tracts, tracts on state lines)
-- Confirm smoke buffer: Spot-check 10–20 fire perimeters and 100 km tract exclusion zones in GIS
-- Document disclosure avoidance impact: If 2020-based ACS estimates available, report whether dropping them changes results (sensitivity check)
+**Quality checks** (with rural data emphasis):
+- **ACS tract-level MOE screening**:
+  - Flag and drop tracts with MOE > 30% of poverty-rate point estimate
+  - Document total N dropped and breakdown by urbanicity (rural vs. urban/suburban)
+  - Report median MOE for included rural tracts (pop 500–2,000) separately; flag if disproportionately high
+  - Justification: ACS 5-year sampling for rural tracts is sparse but valid; wider MOE expected and acceptable
+- **Raster processing**: Spot-check 50 tracts (prioritize mix of rural and urban); visually verify WFP pixel extraction and aggregation in GIS
+- **Cross-validation**: Compare BEA per-capita income (county-level, annual) against ACS median income (tract-level, 5-year) for directional consistency; conduct by urbanicity
+- **Fire-tract spatial overlay**: Sample 20–30 tracts from each cohort (rural and urban); manually inspect tract-fire overlap; flag edge cases (large fires spanning multiple tracts, state-line tracts)
+- **Smoke buffer validation**: Spot-check 10–20 fire perimeters and 100 km tract exclusion zones in GIS; verify tract buffering precision
+- **ACS temporal validity**: Confirm all included ACS data are 5-year estimates (no 3-year or 1-year); document vintage windows (2012: 2008–2012, 2017: 2013–2017, 2022: 2018–2022)
+- **Disclosure avoidance (2020+)**: If 2022 ACS available, assess differential privacy impact; conduct sensitivity analysis dropping 2020-based estimates
 
 ### 4.2 Phase 2: Propensity-Score Matching & Balance Diagnostics (Weeks 4–5)
 
@@ -333,7 +342,7 @@ Use **R package `did::att_gt()`** (Callaway & Sant'Anna implementation) with inv
 | **Placebo / falsification test** | Use pre-2013 fires assigned as "treatment"; estimate C&S ATT on outcomes post-2017 (should be ≈ 0) | If ATT ≈ 0 for pre-fires, supports no confounding from pre-trends. |
 | **Specification: regional FE** | Add state × period FE; add census division × period FE | Tests whether results robust to region-specific time trends. |
 | **Specification: exclude 2020+ ACS** | Drop any estimates using 2020 Census data (differential privacy); re-estimate on 2012–2017 window only | Tests sensitivity to ACS disclosure avoidance introduced 2020+. |
-| **Sample: tract MOE threshold** | Vary MOE screening: drop if MOE > 20%, 30% (baseline), 40% of point estimate | Tests sensitivity to ACS data quality; flagged to researchers as exploratory. |
+| **Sample: tract MOE threshold (rural-specific)** | Vary MOE screening: drop if MOE > 20%, 30% (baseline), 40% of point estimate | Tests sensitivity to ACS data quality. Since rural tracts systematically have higher MOE (due to sparse 5-year samples), report results by urbanicity. Higher thresholds (40%) retain more rural tracts but at cost of wider CIs. Lower thresholds (20%) exclude more rural tracts but improve precision. Recommend baseline 30% as balance. |
 | **Sample: tract population minimum** | Drop tracts with pop < 300, < 500 (baseline), < 1,000 | Tests whether results robust to different tract-size thresholds. |
 | **Sample: stricter never-treated** | Exclude tracts with any fire in 1984–2012 from controls | More conservative control definition (only truly never-exposed tracts). |
 | **Sample: regional drop** | Exclude tracts in CA/OR/WA (highest fire density) vs. Eastern tracts | Tests whether results CA/OR/WA-driven; broader US generalizability check. |
@@ -343,22 +352,23 @@ Use **R package `did::att_gt()`** (Callaway & Sant'Anna implementation) with inv
 
 ### 4.5 Phase 5: Heterogeneous Effects Analysis (Week 8)
 
-**Subgroup analysis** (exploratory; census tracts allow larger subgroups than county design):
+**Subgroup analysis** (exploratory; census tracts allow larger subgroups than county design; with rural data quality caveat):
 
-| Dimension | Subgroups | N (approx.) | Rationale |
+| Dimension | Subgroups | N (approx.) | Data Quality Note |
 |-----------|-----------|---|-----------|
-| **Census region** | South, Midwest, Northeast, West | ~8,000–12,000 tracts each | Fire regimes differ by region; Western fires more common, Eastern more rare. Economic response mechanisms may differ. |
-| **Baseline poverty** | High (>20%), Medium (10–20%), Low (<10%) | ~15,000–20,000 tracts each | Policy interest: do fires disproportionately harm low-income tracts? |
-| **Baseline WFP hazard** | High (>75th %), Medium (50–75th %), Low (<50th %) | ~15,000 tracts each | Test whether tracts with pre-existing high hazard show different fire-poverty effects. |
-| **Tract urbanicity** | Urban, suburban, rural (via RUCC) | ~10,000 / 15,000 / 15,000 | Are rural tracts more vulnerable to fire-driven economic disruption? |
-| **Fire frequency** | 1 fire, 2+ fires | ~1,500 / 300 | Dose-response: do repeated fires compound economic effects? |
-| **Cohort** | Fires 2013–2016 (g=2017), Fires 2017–2021 (g=2022) | ~800 / 500 | Temporal heterogeneity: do recent fires (adaptation awareness higher) have smaller effects? |
+| **Census region** | South, Midwest, Northeast, West | ~8,000–12,000 tracts each | Fire regimes differ by region; Western fires more common, Eastern more rare. Economic response mechanisms may differ. Western tracts more likely rural (lower ACS precision). |
+| **Baseline poverty** | High (>20%), Medium (10–20%), Low (<10%) | ~15,000–20,000 tracts each | Policy interest: do fires disproportionately harm low-income tracts? Poverty measurement quality best in higher-density tracts. |
+| **Baseline WFP hazard** | High (>75th %), Medium (50–75th %), Low (<50th %) | ~15,000 tracts each | Test whether tracts with pre-existing high hazard show different fire-poverty effects. High-hazard tracts concentrated in Western rural areas (higher MOE). |
+| **Tract urbanicity** | Urban, suburban, rural (RUCC 1–3 vs. 4–9) | ~10,000 / 15,000 / 25,000 | **CRITICAL**: Rural tracts (RUCC 4–9) where fires concentrate have systematically larger ACS MOE. Report subgroup ATT + CI, but emphasize: rural estimates wider confidence intervals due to sparse population. Document median MOE by urbanicity. |
+| **Fire frequency** | 1 fire, 2+ fires | ~1,500 / 300 | Dose-response: do repeated fires compound effects? Small n for 2+ fires; interpret with caution. |
+| **Cohort** | Fires 2013–2016 (g=2017), Fires 2017–2021 (g=2022) | ~800 / 500 | Temporal heterogeneity: do recent fires show different effects? Note: g=2022 cohort has only 1 post-treatment ACS period; treat estimates as preliminary. |
 
 **Estimation**:
 - Re-estimate C&S event-study separately for each subgroup (same equation, subset data)
 - Report $\widehat{\text{ATT}}$ and 95% CI by subgroup; visual comparison (side-by-side event-study plots if possible)
+- **For rural subgroup specifically**: Report both ATT and median MOE; note that wider confidence intervals reflect ACS data quality limitations, not statistical weakness
 - **Statistical testing**: Do NOT formally test subgroup differences (multiple comparison problem). Instead, report point estimates and CIs; note overlaps or separation as descriptive finding.
-- **Interpretation caveat**: "Subgroup estimates are exploratory and should be interpreted descriptively. Point estimate differences do not imply statistically significant heterogeneity without formal testing."
+- **Interpretation caveat**: "Subgroup estimates are exploratory. Rural subgroup estimates have wider confidence intervals due to ACS 5-year sampling limitations for sparse populations; this is expected and does not invalidate estimates."
 
 ---
 
@@ -696,11 +706,40 @@ wildfire-poverty-analysis/
 
 ---
 
+## 8.5 Rural Data Quality: Critical Design Decision
+
+**Context**: Majority of large wildfires (MTBS ≥1,000 acres) occur in rural areas. Rural tracts have sparse populations, making ACS estimates inherently noisier. **This is a feature of rural demography, not a flaw in study design.**
+
+**Design Choices (Locked In)**:
+1. **ACS 5-year estimates only** (not 3-year, not 1-year)
+   - 5-year estimates provide adequate rural sample sizes for valid inference
+   - 3-year and 1-year estimates are unreliable for rural geographies (acknowledge in Limitations)
+   - Trade-off: Temporal resolution (5-year windows) vs. rural data reliability (5-year estimates needed)
+
+2. **MOE screening at 30% threshold** (not 20%, not 40%)
+   - Baseline: Drop tracts if MOE > 30% of poverty-rate point estimate
+   - Justification: 30% threshold balances data quality and sample retention; allows rural tracts with reasonable MOE precision
+   - Robustness: Vary threshold (20%, 40%); report results separately for rural vs. urban subgroups
+   - Document: Report N tracts dropped, breakdown by urbanicity, median MOE for included rural tracts
+
+3. **Report rural results transparently**
+   - Rural subgroup estimates (in Phase 5) should report ATT ± 95% CI alongside median MOE
+   - Caption note: "Rural tract estimates have wider confidence intervals due to ACS 5-year sampling for sparse populations; this expected precision reflects design, not weakness"
+   - Suppress formal statistical tests for rural vs. urban subgroup differences (confounded by MOE differences)
+
+4. **Temporal alignment implications**
+   - Pre-treatment baseline (2012 ACS, 2008–2012 window): ~4–6 years pre-fire for g=2017 cohort
+   - Post-treatment measurement (2017 ACS, 2013–2017 window): ~1–4 years post-fire for early-cohort fires
+   - Flag in Limitations: Medium-term effects (3–5 years post-fire) primary; longer-term persistence cannot be assessed with current data
+   - Suggest: As 2023 ACS becomes available, extend to 2027 window for longer-term follow-up
+
+---
+
 ## 9. Known Risks & Mitigation
 
 | Risk | Impact | Mitigation |
 |------|--------|-----------|
-| **ACS tract-level data quality** | Tract-level ACS estimates have larger MOEs than county-level; sparse rural tracts may be unreliable. ~30% of tracts may fail MOE screening. | Implement MOE screening (drop if MOE > 30% of point estimate); report N tracts excluded. Conduct robustness: vary MOE threshold (20%, 30%, 40%); test stability of results. This is documented in Phase 1 quality checks. |
+| **ACS tract-level data quality (rural focus)** | Tract-level ACS estimates have larger MOEs than county-level. **Rural tracts (where majority of fires occur) have systematically larger MOE because ACS 5-year samples are sparse for low-density areas.** ~30% of tracts may fail MOE > 30% screen, with rural tracts disproportionately excluded. ACS 3-year and 1-year estimates unsuitable for rural geographies; must use 5-year only. | Use ACS 5-year estimates exclusively (do NOT use 3-year/1-year even for robustness). Implement MOE screening (drop if MOE > 30% of point estimate); report N tracts excluded, broken down by urbanicity (rural vs. urban/suburban). Conduct robustness: vary MOE threshold (20%, 30%, 40%); assess whether rural subgroup estimates remain stable. Document median MOE for rural vs. urban tracts. Acknowledge in Limitations: Rural estimates have wider CIs by design (ACS sampling limitation), not statistical flaw. |
 | **Thin common support (raster matching)** | Many high-WFP tracts never experience fires; IPW reweighting may reduce effective control pool drastically. Tract-level design increases this risk. | Check ESS carefully (target ≥ 500; flag if << unweighted control N). Conduct robustness: drop extreme propensity scores; check ATT sensitivity. Consider alternative: CEM on WFP raster quintiles. Report if common support is limiting. |
 | **Raster-tract intersection precision** | 270m WFP pixels may not align perfectly with tract boundaries; aggregation to tract-level summaries introduces measurement error. | Conduct spot-checks: verify 50 tracts' raster-tract overlaps in GIS. Test robustness: re-estimate using (a) county-level WFP aggregation (pre-update design), (b) full raster covariates (current). Compare ATTs. If ATT materially changes, raster precision matters; report prominently. |
 | **ACS disclosure avoidance (2020 onward)** | Differential privacy noise inflates variance; especially problematic for small geographies like sparse tracts. | Use 5-year estimates (averaging reduces noise). Conduct sensitivity: (a) drop 2020-based ACS, re-estimate on 2012–2017 period, (b) report whether results change. Flag in limitations if variance materially increases. |

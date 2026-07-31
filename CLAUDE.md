@@ -43,12 +43,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Data Sources & Known Quirks
 
-### ACS (via IPUMS)
-- **5-year estimates (2007–2022)**: Use final year of estimate as label (e.g., ACS 2011–2015 → "2015" ≈ "2012 analysis period")
-- **Clarity on vintage**: When pulling, specify estimate window, not single year
-- **Disclosure avoidance (2020 onward)**: Differential privacy adds noise; standard errors inflate. Conduct sensitivity: (a) drop 2020-based estimates, re-estimate on 2007–2017 period; (b) compare results. If materially different, flag in Limitations.
+### ACS (via IPUMS) — Critical: Rural Data Quality
+- **ACS 5-year estimates ONLY** (for tract-level, rural-focused study)
+  - 5-year estimates essential for rural geographic reliability
+  - ACS 3-year and 1-year estimates are unreliable for rural tracts; DO NOT use even for robustness
+  - Majority of fires occur in rural areas; 5-year sampling provides valid estimates despite larger MOE
+- **Approved ACS periods**: 2012 (2008–2012 window), 2017 (2013–2017), 2022 (2018–2022)
+  - Do not substitute 3-year or 1-year estimates
+  - Acknowledge 5-year temporal resolution limits (pre-fire window ends 4–6 years before fires in g=2017 cohort)
+- **MOE screening for rural validity**: Drop tracts if poverty MOE > 30% of point estimate. Report N dropped, broken down by urbanicity. Higher MOE in rural tracts expected; document median MOE by RUCC.
 - **Poverty and income**: Standard Census definitions. Account for top-coding of income (≈$250k+); flag prevalence by cell.
-- **Net migration**: ACS "residence 1 year ago" and "5 years ago" (available at county). Use 5-year window (matches ACS estimate period). Interpret as net migration proxy; cannot separately identify in vs. out migration.
+- **Net migration**: ACS "residence 5 years ago" (available at tract level). Use 5-year window (matches ACS estimate period and fire-effect timescale). Interpret as net migration proxy; cannot separately identify gross in vs. out flows. More noise in rural tracts (sparse populations).
 
 ### Fire Data (Reuse from wildfire-finance)
 - **MTBS** (Monitoring Trends in Burn Severity): 1984–2022 fires, nationwide. Minimum threshold 1,000 acres nationwide (conservative for this tract-level study; robustness test at 500 acres).
