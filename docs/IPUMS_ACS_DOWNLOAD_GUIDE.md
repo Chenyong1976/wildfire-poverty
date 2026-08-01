@@ -2,7 +2,7 @@
 
 **Source**: https://www.ipums.org/ (free account required)  
 **Data**: ACS 5-year tract-level estimates  
-**Periods**: 2012, 2017, 2023 (critical for staggered DiD design)
+**Periods**: 2012, 2022, 2023 (required for single clean cohort design: fires 2015-2017)
 
 ---
 
@@ -41,10 +41,10 @@ On the left side, you will see a list of available datasets/surveys. Look for:
 Select **ALL THREE**:
 
 ✓ ACS 2008-2012 5-year sample (labeled as "2012")  
-✓ ACS 2013-2017 5-year sample (labeled as "2017")  
+✓ ACS 2018-2022 5-year sample (labeled as "2022")  
 ✓ ACS 2019-2023 5-year sample (labeled as "2023")
 
-**Note**: Do NOT select 1-year or 3-year samples. The project requires 5-year estimates only for rural data validity.
+**Critical note**: Do NOT select 1-year or 3-year samples. The project requires 5-year estimates only for rural data validity. Also do NOT use 2017 ACS — the 2013-2017 window overlaps with the fire cohort (2015-2017) and is contaminated.
 
 ---
 
@@ -109,7 +109,7 @@ Search for and select the following variables (must have all three periods):
 
 ### 3. Submit Extract and Download
 
-1. Review your extract summary (should show: ACS 2012, 2017, 2023; tract-level; all 4 variable groups)
+1. Review your extract summary (should show: ACS 2012, 2022, 2023; tract-level; all 4 variable groups)
 2. Click **"SUBMIT EXTRACT"** or similar button
 3. IPUMS will email you when the extract is ready (usually within minutes)
 4. Open the email and click the download link
@@ -126,13 +126,19 @@ After downloading, extract the ZIP and save:
 
 ```
 data/raw/acs_extracts/
-├── acs_2012_tract_extract.csv    (from IPUMS ACS 2012)
-├── acs_2017_tract_extract.csv    (from IPUMS ACS 2017)
-├── acs_2023_tract_extract.csv    (from IPUMS ACS 2023)
+├── acs_2012_tract_extract.csv    (from IPUMS ACS 2012, 2008-2012 window)
+├── acs_2022_tract_extract.csv    (from IPUMS ACS 2022, 2018-2022 window)
+├── acs_2023_tract_extract.csv    (from IPUMS ACS 2023, 2019-2023 window)
 └── ipums_acs_codebook.pdf        (variable definitions)
 ```
 
 **File naming**: Name files exactly as above so the Python scripts can find them.
+
+**Timing note**: 
+- 2012 ACS = baseline (pre-fire)
+- 2022 ACS = 1–4 years post-fire (for fires in 2015–2017)
+- 2023 ACS = 2–6 years post-fire (for fires in 2015–2017)
+- The 2022 and 2023 windows overlap (2019–2022 shared), which is standard in panel data
 
 ---
 
@@ -161,7 +167,7 @@ After download, each CSV should contain approximately:
 
 After downloading, verify:
 
-- [ ] Three CSV files exist: `acs_2012_tract_extract.csv`, `acs_2017_tract_extract.csv`, `acs_2023_tract_extract.csv`
+- [ ] Three CSV files exist: `acs_2012_tract_extract.csv`, `acs_2022_tract_extract.csv`, `acs_2023_tract_extract.csv`
 - [ ] Each file has ~70,000–75,000 rows (one per tract)
 - [ ] Each file has columns for: state FIPS, county FIPS, tract code, NAME, and all 4 variable groups
 - [ ] Margins of error (MOE) columns present for all outcome variables
@@ -175,7 +181,7 @@ After downloading, verify:
 
 ### "I don't see the 5-year ACS samples"
 
-IPUMS updates its data holdings regularly. As of 2026, ACS 2012, 2017, and 2023 (5-year) should all be available. If you see only 1-year or 3-year samples:
+IPUMS updates its data holdings regularly. As of 2026, ACS 2012, 2022, and 2023 (5-year) should all be available. If you see only 1-year or 3-year samples:
 
 1. Refresh the IPUMS page
 2. Check that you're in the "IPUMS USA" project, not another IPUMS project
@@ -193,14 +199,15 @@ You can go back and deselect unnecessary ones, then resubmit. The PDF codebook w
 
 ## Data Processing After Download
 
-Once files are saved to `data/raw/acs_extracts/`, the Python script `code/01_build/02_acs_load.py` will:
+Once files are saved to `data/raw/acs_extracts/`, the Python script `code/01_build/03_acs_load.py` will:
 
-1. Load each CSV file
+1. Load each CSV file (2012, 2022, 2023)
 2. Construct 11-digit GEOID from state/county/tract FIPS
-3. Screen for MOE > 30% of point estimate (drop invalid tracts)
-4. Screen for population < 500 (drop small tracts)
-5. Pivot to wide format (one row per tract, one column per outcome × year)
-6. Output: `data/processed/acs_2012_2023_tract_clean.parquet`
+3. Extract poverty rate, median income, employment, and net-migration indicators from Census Bureau variables
+4. Screen for MOE > 30% of point estimate on poverty (drop invalid tracts)
+5. Screen for population < 500 (drop small tracts)
+6. Pivot to panel format (one row per tract-year)
+7. Output: `data/processed/acs_2012_2022_2023_tract_clean.parquet`
 
 ---
 
