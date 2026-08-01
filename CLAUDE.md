@@ -4,53 +4,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Title**: Wildfire Impact on Poverty and Net Migration: A Census-Tract Study with Fine-Grained Spatial Matching (2013–2021)  
-**Status**: Design phase (major revision: county → tract; raster matching at 270m resolution); PAP pending update  
-**Research Question**: Do large wildfires reduce household incomes and increase poverty rates in affected US census tracts? What role does population displacement (out-migration) play? How does within-county heterogeneity in fire exposure affect outcomes?  
-**Identification Strategy**: Staggered difference-in-differences (Callaway & Sant'Anna 2021) with fine-grained raster-based WFP 2012 propensity-score matching (270m resolution)
-**Geographic Scope**: All lower-48 US states (~70,000 census tracts); tract-level resolution (vs. prior county-level design)  
-**Spatial Matching**: WFP 2012 Wildfire Hazard Potential at native 270m resolution; tract-level raster summaries (mean WFP percentile, % area per hazard quintile, distance to high-hazard pixels) used as matching covariates
-**Treatment Window**: 2013–2021 (MTBS fires ≥1,000 acres; staggered cohorts: g=2017 [fires 2013–2016], g=2022 [fires 2017–2021])  
-**Analysis Period**: 2012, 2017, 2022 ACS 5-year estimates (3 periods)
-**Statistical Power**: Tract-level design provides ~70,000 geographic units vs. 3,100 counties; expected 40,000–50,000 tracts after MOE/population screening
-**Key Innovation**: (1) First study to leverage 270m WHP raster for tract-level treatment/control matching; (2) Mediation analysis on net-migration to decompose poverty effects into income loss vs. population composition changes
+**Title**: Wildfire Impact on Poverty: A National Census-Tract Study with Raster-Based Spatial Matching (2015–2017)  
+**Status**: Design finalized (2026-07-31); single clean cohort design to avoid overlapping-window bias  
+**Research Question**: Do large wildfires (≥1,000 acres) causally increase poverty rates in US census tracts? What role does population displacement (net migration) play?  
+**Identification Strategy**: Single clean cohort (fires 2015–2017) + simple difference-in-differences with propensity-score inverse-probability weighting on USFS WFP 2012 raster (270m resolution)  
+**Geographic Scope**: All lower-48 US states (~70,000 census tracts); tract-level resolution captures within-county heterogeneity  
+**Spatial Matching**: WFP 2012 Wildfire Hazard Potential at native 270m resolution; tract-level raster summaries (mean WFP percentile, % area per hazard quintile, distance to high-hazard pixels) as primary matching covariates  
+**Treatment Definition**: Single non-overlapping fire cohort (2015–2017); ~700–800 treated tracts; ~40,000 never-treated controls  
+**Analysis Period**: ACS 5-year estimates: 2012 (baseline), 2022 (1–4 yrs post-fire), 2023 (2–6 yrs post-fire)  
+**Statistical Power**: ~700 treated vs. ~40k controls, expected CIs ~0.5–1.0 pp on poverty rate  
+**Key Innovation**: (1) First **national tract-level** study (not county-level or Western-only); (2) **Clean single-cohort design** avoiding mutual-exclusivity violations of overlapping-window staggered DiD; (3) **Raster-based WHP matching** at 270m resolution; (4) Descriptive decomposition of poverty effects via net migration
 
 ---
 
 ## Core Design
 
-- **Sample**: All lower-48 US census tracts (~70,000); ACS 5-year tract-level estimates 2012, 2017, 2022 (3 periods); after MOE screening (MOE ≤ 30% poverty) and population ≥ 500: ~40,000–50,000 tracts
-- **Treatment**: Staggered—first large fire (MTBS ≥1,000 acres) in treatment window
-  - Cohort g=2017: First fire 2013–2016 (post-treatment observed 2017–2021)
-  - Cohort g=2022: First fire 2017–2021 (post-treatment observed 2018–2022)
-  - g=0: Never-treated (no fires 2013–2021, outside 100 km smoke buffer)
+- **Sample**: All lower-48 US census tracts (~70,000); ACS 5-year tract-level estimates 2012, 2022, 2023 (3 periods); after MOE screening (MOE ≤ 30% poverty) and population ≥ 500: ~40,700 tracts (~700 treated + ~40k controls)
+- **Treatment**: Single clean cohort—first large fire (MTBS ≥1,000 acres) in 2015–2017
+  - Cohort g=2016: First fire 2015, 2016, or 2017
+  - g=0: Never-treated (no fires 2013–2023, outside 100 km smoke buffer)
+  - **Design rationale**: Single non-overlapping window avoids mutual-exclusivity violations of overlapping-cohort staggered DiD
 - **Treatment margins**: 
-  - Extensive: Binary—any fire ≥1,000 acres in treatment window
-  - Intensive: Fire count, total acres burned, WFP 2012 raster intensity (mean WFP percentile per tract)
+  - Extensive: Binary—any fire ≥1,000 acres in 2015–2017 (primary)
+  - Intensive: Burned share (% tract area burned; continuous), fire count, WFP 2012 raster intensity
 - **Primary outcomes** (in priority order):
   1. Poverty rate (% population below federal poverty line)
-  2. Median household income (nominal, 2019 dollars)
-  3. Net-migration rate (% moved in – % moved out, past 5 years) **[mediator]**
+  2. Median household income (nominal, 2020 dollars)
+  3. Net-migration rate (% moved in – % moved out, past 5 years) **[descriptive decomposition]**
   4. Employment rate (% civilian labor force employed)
-- **Control group**: Never-treated (no fires 2013–2021, outside 100 km smoke buffer), balanced on raster-based matching covariates
-- **Matching strategy (NEW)**: Propensity-score inverse-probability weights (PS-IPW) on:
-  - **Raster-based WFP 2012 summaries** (270m resolution): Mean WFP percentile, % area per hazard quintile, distance to high-hazard pixel
+- **Control group**: Never-treated (no fires 2013–2023, outside 100 km smoke buffer), balanced on raster-based matching covariates
+- **Matching strategy**: Propensity-score inverse-probability weights (PS-IPW) on:
+  - **Raster-based WFP 2012 summaries** (270m resolution, predetermined): Mean WFP percentile, % area per hazard quintile, distance to high-hazard pixel
   - Pre-2013 fire history (any large fire 1984–2012, log acres burned)
   - Pre-treatment baseline covariates (2012 ACS tract-level: poverty, income, demographics; county-level RUCC; population)
-- **Data sources**: ACS (IPUMS, tract-level), MTBS fire perimeters, USFS WFP 2012 (270m raster; primary matching), WHP 2014 (robustness), BEA (annual, merged to tract via county)
+- **Data sources**: ACS (IPUMS, tract-level), MTBS fire perimeters, USFS WFP 2012 (270m raster; primary matching), BEA (annual, merged to tract via county)
 
 ---
 
 ## Data Sources & Known Quirks
 
-### ACS (via IPUMS) — Critical: Rural Data Quality
+### ACS (via IPUMS) — Critical: Rural Data Quality & Temporal Structure
 - **ACS 5-year estimates ONLY** (for tract-level, rural-focused study)
   - 5-year estimates essential for rural geographic reliability
   - ACS 3-year and 1-year estimates are unreliable for rural tracts; DO NOT use even for robustness
   - Majority of fires occur in rural areas; 5-year sampling provides valid estimates despite larger MOE
-- **Approved ACS periods**: 2012 (2008–2012 window), 2017 (2013–2017), 2022 (2018–2022)
-  - Do not substitute 3-year or 1-year estimates
-  - Acknowledge 5-year temporal resolution limits (pre-fire window ends 4–6 years before fires in g=2017 cohort)
+- **Approved ACS periods** (single-cohort design): 2012 (2008–2012 window), 2022 (2018–2022), 2023 (2019–2023)
+  - 2012 = baseline (pre-fire)
+  - 2022 = 1–4 years post-fire (fires 2015–2017)
+  - 2023 = 2–6 years post-fire (fires 2015–2017)
+  - Note: 2022 and 2023 windows overlap (2019–2022 shared), which is expected and acceptable in panel data
+  - Do not substitute with 2017 ACS (2013–2017 window contaminated by fires 2015–2017)
 - **MOE screening for rural validity**: Drop tracts if poverty MOE > 30% of point estimate. Report N dropped, broken down by urbanicity. Higher MOE in rural tracts expected; document median MOE by RUCC.
 - **Poverty and income**: Standard Census definitions. Account for top-coding of income (≈$250k+); flag prevalence by cell.
 - **Net migration**: ACS "residence 5 years ago" (available at tract level). Use 5-year window (matches ACS estimate period and fire-effect timescale). Interpret as net migration proxy; cannot separately identify gross in vs. out flows. More noise in rural tracts (sparse populations).
