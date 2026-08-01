@@ -2,7 +2,7 @@
 
 **Source**: https://www.ipums.org/ (free account required)  
 **Data**: ACS 5-year tract-level estimates  
-**Periods**: 2012, 2014, 2022, 2023 (required for single clean cohort design: fires 2015-2017, with pre-trend testing)
+**Periods**: 2009, 2012, 2014, 2022, 2023, 2024 (required for single clean cohort design: fires 2015-2017, with robust pre-trend testing and long-run effects)
 
 ---
 
@@ -36,14 +36,16 @@
 
 On the left side, you will see a list of available datasets/surveys. Look for:
 
-- **ACS 5-year samples** (labeled by final year: 2012, 2014, 2022, 2023)
+- **ACS 5-year samples** (labeled by final year: 2009, 2012, 2014, 2022, 2023, 2024)
 
-Select **ALL FOUR**:
+Select **ALL SIX**:
 
+✓ ACS 2005-2009 5-year sample (labeled as "2009")  
 ✓ ACS 2008-2012 5-year sample (labeled as "2012")  
 ✓ ACS 2010-2014 5-year sample (labeled as "2014")  
 ✓ ACS 2018-2022 5-year sample (labeled as "2022")  
-✓ ACS 2019-2023 5-year sample (labeled as "2023")
+✓ ACS 2019-2023 5-year sample (labeled as "2023")  
+✓ ACS 2020-2024 5-year sample (labeled as "2024")
 
 **Critical note**: Do NOT select 1-year or 3-year samples. The project requires 5-year estimates only for rural data validity. Do NOT use 2017 ACS — the 2013-2017 window overlaps with the fire cohort (2015-2017) and is contaminated.
 
@@ -110,12 +112,12 @@ Search for and select the following variables (must have all three periods):
 
 ### 3. Submit Extract and Download
 
-1. Review your extract summary (should show: ACS 2012, 2014, 2022, 2023; tract-level; all 4 variable groups)
+1. Review your extract summary (should show: ACS 2009, 2012, 2014, 2022, 2023, 2024; tract-level; all 4 variable groups)
 2. Click **"SUBMIT EXTRACT"** or similar button
 3. IPUMS will email you when the extract is ready (usually within minutes)
 4. Open the email and click the download link
 5. A ZIP file will download containing:
-   - `*.csv` — actual data (large file, ~250–350 MB per year for all lower-48 tracts)
+   - `*.csv` — actual data (large file, ~350–450 MB total for all lower-48 tracts × 6 years)
    - `*.pdf` — codebook (variable definitions; save this for documentation)
    - `*.do` — Stata code for data import (not needed for this project)
 
@@ -127,22 +129,25 @@ After downloading, extract the ZIP and save:
 
 ```
 data/raw/acs_extracts/
+├── acs_2009_tract_extract.csv    (from IPUMS ACS 2009, 2005-2009 window)
 ├── acs_2012_tract_extract.csv    (from IPUMS ACS 2012, 2008-2012 window)
 ├── acs_2014_tract_extract.csv    (from IPUMS ACS 2014, 2010-2014 window)
 ├── acs_2022_tract_extract.csv    (from IPUMS ACS 2022, 2018-2022 window)
 ├── acs_2023_tract_extract.csv    (from IPUMS ACS 2023, 2019-2023 window)
+├── acs_2024_tract_extract.csv    (from IPUMS ACS 2024, 2020-2024 window)
 └── ipums_acs_codebook.pdf        (variable definitions)
 ```
 
 **File naming**: Name files exactly as above so the Python scripts can find them.
 
-**Timing note**: 
-- 2012 ACS (h = −2) = 3–6 years pre-fire (2008–2012 window)
+**Timing note (event-study periods)**:
+- 2009 ACS (h = −3) = 5–6 years pre-fire (2005–2009 window); pre-trend test (far pre)
+- 2012 ACS (h = −2) = 3–4 years pre-fire (2008–2012 window); pre-trend test
 - 2014 ACS (h = −1) = 1–4 years pre-fire (2010–2014 window); reference period for event study
-- 2022 ACS (h = 0) = 1–4 years post-fire (2018–2022 window)
-- 2023 ACS (h = +1) = 2–6 years post-fire (2019–2023 window)
-- The 2022 and 2023 windows overlap (2019–2022 shared), which is standard in panel data
-- The 2012 and 2014 windows overlap (2010–2012 shared), which allows the pre-trend test (β₋₂) to be independent
+- 2022 ACS (h = 0) = 1–4 years post-fire (2018–2022 window); medium-run effect
+- 2023 ACS (h = +1) = 2–6 years post-fire (2019–2023 window); medium-run effect
+- 2024 ACS (h = +2) = 3–7 years post-fire (2020–2024 window); long-run effect
+- Window overlaps (2012/2014 share 2010–2012; 2022/2023 share 2019–2022) are standard in panel data and allow trajectory estimation
 
 ---
 
@@ -161,9 +166,9 @@ After download, each CSV should contain approximately:
 | B19013_001E | Median income ($) | 65000 |
 | ... (more variables) | ... | ... |
 
-**Total tracts per year**: ~70,000 (national) × 4 years = 280,000 rows + header
+**Total tracts per year**: ~70,000 (national) × 6 years = 420,000 rows + header
 
-**Total file size**: ~1.0–1.2 GB for all four years
+**Total file size**: ~1.4–1.7 GB for all six years
 
 ---
 
@@ -171,7 +176,7 @@ After download, each CSV should contain approximately:
 
 After downloading, verify:
 
-- [ ] Four CSV files exist: `acs_2012_tract_extract.csv`, `acs_2014_tract_extract.csv`, `acs_2022_tract_extract.csv`, `acs_2023_tract_extract.csv`
+- [ ] Six CSV files exist: `acs_2009_tract_extract.csv`, `acs_2012_tract_extract.csv`, `acs_2014_tract_extract.csv`, `acs_2022_tract_extract.csv`, `acs_2023_tract_extract.csv`, `acs_2024_tract_extract.csv`
 - [ ] Each file has ~70,000–75,000 rows (one per tract)
 - [ ] Each file has columns for: state FIPS, county FIPS, tract code, NAME, and all 4 variable groups
 - [ ] Margins of error (MOE) columns present for all outcome variables
@@ -205,25 +210,25 @@ You can go back and deselect unnecessary ones, then resubmit. The PDF codebook w
 
 Once files are saved to `data/raw/acs_extracts/`, the Python script `code/01_build/03_acs_load.py` will:
 
-1. Load each CSV file (2012, 2014, 2022, 2023)
+1. Load each CSV file (2009, 2012, 2014, 2022, 2023, 2024)
 2. Construct 11-digit GEOID from state/county/tract FIPS
 3. Extract poverty rate, median income, employment, and net-migration indicators from Census Bureau variables
 4. Screen for MOE > 30% of point estimate on poverty (drop invalid tracts)
 5. Screen for population < 500 (drop small tracts)
 6. Pivot to panel format (one row per tract-year)
-7. Output: `data/processed/acs_2012_2014_2022_2023_tract_clean.parquet`
+7. Output: `data/processed/acs_2009_2012_2014_2022_2023_2024_tract_clean.parquet`
 
 ---
 
 ## Time Estimate
 
 - Account creation: 5 minutes
-- Extract creation: 10 minutes (one additional year adds ~30 seconds)
+- Extract creation: 10 minutes
 - Waiting for extract: 5–10 minutes
-- Download: 15–25 minutes (slightly larger file due to 4 years)
+- Download: 20–30 minutes (larger file due to 6 years)
 - Saving files to project: 5 minutes
 
-**Total**: ~45–50 minutes
+**Total**: ~50–60 minutes
 
 ---
 

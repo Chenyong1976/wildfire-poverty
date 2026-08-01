@@ -1,7 +1,7 @@
 # Research Goal: Wildfire Impact on Poverty in US Census Tracts
 
-**Last Updated**: 2026-07-30 (Revised after critical assessment)  
-**Status**: Design phase (tract-level + raster-based matching)
+**Last Updated**: 2026-08-02 (Updated to 6 ACS periods for robust pre-trend testing and long-run effects)  
+**Status**: Design phase (tract-level + raster-based matching + trajectory estimation)
 
 ---
 
@@ -15,9 +15,9 @@
 ### Secondary Questions
 1. **What share of the tract-level poverty effect is attributable to resident income losses vs. the selective departure of lower-income households?** (Mechanism decomposition)
 2. **Do wildfire effects on poverty vary systematically by fire severity, baseline tract poverty, rurality, race/ethnicity composition, or housing tenure?** (Heterogeneous effects)
-3. **Are wildfire poverty effects persistent at 5–7 years post-fire, or do they fade as labor markets and housing recover?** (Duration)
+3. **Are wildfire poverty effects persistent at 3–7 years post-fire, or do they fade as labor markets and housing recover?** (Duration & trajectory)
 
-*Design note*: Secondary question 3 is data-constrained — with only two post-treatment ACS periods (2017 and 2022) separated by 5 years, the study can distinguish medium-run effects across cohorts but cannot trace a fine-grained recovery trajectory. This limitation is acknowledged throughout.
+*Design note*: Secondary question 3 is now well-addressed — with three post-treatment ACS periods (2022, 2023, 2024), the study traces a fine-grained recovery trajectory over 3–7 years post-fire, showing whether effects fade, persist, or amplify.
 
 ---
 
@@ -50,15 +50,19 @@ Wildfires are increasing in frequency and severity across the US, affecting vuln
 
 ## Time Horizons: Short-Run, Medium-Run, Long-Run
 
-The study examines **medium-run effects** (3–5 years post-fire) with implications for understanding longer-term dynamics:
+The study examines **medium- to long-run effects** (1–7 years post-fire) with robust pre-trend testing:
 
 | Horizon | Definition | Measurement in This Study | Expected Dynamics |
 |---------|-----------|-----------|-----------|
-| **Short-run** (0–2 yr) | Immediate post-fire shock | **Not captured.** No ACS period immediately follows fire; 2017 ACS (window 2013–2017) averages over up to 5 post-fire years for early-cohort tracts. This study cannot identify year-1 effects. | Acute job loss, housing destruction, temporary displacement; disaster assistance peaks |
-| **Medium-run** (3–5 yr) | Primary analysis window | **Partially captured.** For g=2017 tracts (fires 2013–2016), the 2017 ACS captures up to 4 years of cumulative effect; the 2022 ACS captures 6–9 years post-fire. Effect is the *average within the ACS window*, not point-in-time. | Job recovery vs. permanent restructuring; migration stabilization; housing market adjustment |
-| **Long-run** (5–10+ yr) | Persistence & permanent effects | **Cannot assess with current data.** Requires post-2023 ACS vintages. Suggest as future extension. | Regional economic reorientation; repeated-fire compounding; intergenerational poverty transmission |
+| **Short-run** (0–2 yr) | Immediate post-fire shock | **Not captured.** ACS estimates have 5-year measurement windows; earliest post-fire ACS (2022) starts 3 years after first 2015 fires. | Acute job loss, housing destruction, temporary displacement; disaster assistance peaks |
+| **Medium-run** (1–6 yr) | Primary analysis window | **Captured via h=0 (1–4 yrs) and h=+1 (2–6 yrs).** ACS 2022 and 2023 give overlapping snapshots of medium-run effects. | Job recovery vs. permanent restructuring; migration stabilization; housing market adjustment |
+| **Long-run** (3–7 yr) | Persistence & trajectory | **Now captured via h=+2 (3–7 yrs).** ACS 2024 enables trajectory estimation — fadeout, persistence, or amplification. | Persistence of poverty effects; recovery trajectories; compositional shifts |
+| **Very long-run** (7+ yr) | Permanent effects | **Not captured.** Would require post-2024 ACS. Suggest as future extension. | Regional economic reorientation; repeated-fire compounding; intergenerational poverty transmission |
 
-**Critical data limitation**: ACS 5-year estimates provide only three snapshots (2012, 2017, 2022), yielding at most **one pre-treatment period and two post-treatment periods** per cohort. Pre-trend testing is therefore minimal — only one pre-period exists for each cohort (h = −1). Parallel trends must be argued primarily through the WFP raster matching strategy, not validated through multiple pre-period placebo regressions. This constraint must be disclosed prominently in the Limitations section.
+**Key strength (updated 2026-08-02)**: ACS 5-year estimates now provide six snapshots (2009, 2012, 2014, 2022, 2023, 2024), yielding **three pre-treatment periods** and **three post-treatment periods**. This enables:
+- **Robust parallel trends testing**: β₋₃ and β₋₂ provide two independent pre-trend tests; can formally test H₀: β₋₃ = β₋₂ = 0
+- **Trajectory estimation**: β₀, β₊₁, β₊₂ trace poverty dynamics over 1–7 years post-fire
+- **Much stronger identification** than the prior two-period design
 
 ---
 
