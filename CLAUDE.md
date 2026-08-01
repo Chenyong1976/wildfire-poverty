@@ -5,21 +5,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 **Title**: Wildfire Impact on Poverty: A National Census-Tract Study with Raster-Based Spatial Matching (2015–2017)  
-**Status**: Design finalized (2026-07-31); single clean cohort design to avoid overlapping-window bias  
+**Status**: Design finalized (2026-08-01); single clean cohort with pre-trend testing via event-study design  
 **Research Question**: Do large wildfires (≥1,000 acres) causally increase poverty rates in US census tracts? What role does population displacement (net migration) play?  
-**Identification Strategy**: Single clean cohort (fires 2015–2017) + simple difference-in-differences with propensity-score inverse-probability weighting on USFS WFP 2012 raster (270m resolution)  
+**Identification Strategy**: Single clean cohort (fires 2015–2017) + event-study difference-in-differences with propensity-score inverse-probability weighting on USFS WFP 2012 raster (270m resolution)  
 **Geographic Scope**: All lower-48 US states (~70,000 census tracts); tract-level resolution captures within-county heterogeneity  
 **Spatial Matching**: WFP 2012 Wildfire Hazard Potential at native 270m resolution; tract-level raster summaries (mean WFP percentile, % area per hazard quintile, distance to high-hazard pixels) as primary matching covariates  
 **Treatment Definition**: Single non-overlapping fire cohort (2015–2017); ~700–800 treated tracts; ~40,000 never-treated controls  
-**Analysis Period**: ACS 5-year estimates: 2012 (baseline), 2022 (1–4 yrs post-fire), 2023 (2–6 yrs post-fire)  
+**Analysis Period**: ACS 5-year estimates: 2012 (h=−2), 2014 (h=−1, reference), 2022 (h=0), 2023 (h=+1); enables genuine pre-trend testing  
 **Statistical Power**: ~700 treated vs. ~40k controls, expected CIs ~0.5–1.0 pp on poverty rate  
-**Key Innovation**: (1) First **national tract-level** study (not county-level or Western-only); (2) **Clean single-cohort design** avoiding mutual-exclusivity violations of overlapping-window staggered DiD; (3) **Raster-based WHP matching** at 270m resolution; (4) Descriptive decomposition of poverty effects via net migration
+**Key Innovation**: (1) First **national tract-level** study (not county-level or Western-only); (2) **Clean single-cohort design** with genuine **pre-trend testing** (event-study h=−2 coefficient); (3) **Raster-based WHP matching** at 270m resolution; (4) Descriptive decomposition of poverty effects via net migration
 
 ---
 
 ## Core Design
 
-- **Sample**: All lower-48 US census tracts (~70,000); ACS 5-year tract-level estimates 2012, 2022, 2023 (3 periods); after MOE screening (MOE ≤ 30% poverty) and population ≥ 500: ~40,700 tracts (~700 treated + ~40k controls)
+- **Sample**: All lower-48 US census tracts (~70,000); ACS 5-year tract-level estimates 2012, 2014, 2022, 2023 (4 periods); after MOE screening (MOE ≤ 30% poverty) and population ≥ 500: ~40,700 tracts (~700 treated + ~40k controls)
 - **Treatment**: Single clean cohort—first large fire (MTBS ≥1,000 acres) in 2015–2017
   - Cohort g=2016: First fire 2015, 2016, or 2017
   - g=0: Never-treated (no fires 2013–2023, outside 100 km smoke buffer)
@@ -48,11 +48,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - 5-year estimates essential for rural geographic reliability
   - ACS 3-year and 1-year estimates are unreliable for rural tracts; DO NOT use even for robustness
   - Majority of fires occur in rural areas; 5-year sampling provides valid estimates despite larger MOE
-- **Approved ACS periods** (single-cohort design): 2012 (2008–2012 window), 2022 (2018–2022), 2023 (2019–2023)
-  - 2012 = baseline (pre-fire)
-  - 2022 = 1–4 years post-fire (fires 2015–2017)
-  - 2023 = 2–6 years post-fire (fires 2015–2017)
-  - Note: 2022 and 2023 windows overlap (2019–2022 shared), which is expected and acceptable in panel data
+- **Approved ACS periods** (event-study design with pre-trend testing): 2012 (2008–2012), 2014 (2010–2014), 2022 (2018–2022), 2023 (2019–2023)
+  - 2012 ACS = h=−2 (3–6 years pre-fire); genuine pre-trend test
+  - 2014 ACS = h=−1 (1–4 years pre-fire); reference period for event study
+  - 2022 ACS = h=0 (1–4 years post-fire)
+  - 2023 ACS = h=+1 (2–6 years post-fire)
+  - Note: 2022 and 2023 windows overlap (2019–2022 shared), and 2012–2014 windows overlap (2010–2012 shared); both acceptable in panel data. Overlapping windows allow independent coefficient testing.
   - Do not substitute with 2017 ACS (2013–2017 window contaminated by fires 2015–2017)
 - **MOE screening for rural validity**: Drop tracts if poverty MOE > 30% of point estimate. Report N dropped, broken down by urbanicity. Higher MOE in rural tracts expected; document median MOE by RUCC.
 - **Poverty and income**: Standard Census definitions. Account for top-coding of income (≈$250k+); flag prevalence by cell.
@@ -155,26 +156,28 @@ wildfire-poverty-analysis/
 
 ## Methodological Defaults
 
-### Difference-in-Differences: Callaway & Sant'Anna (2021)
-- **Primary estimator**: C&S for staggered treatment with heterogeneous effects; use R package `did::att_gt()`
-- **Event-study specification**: $h \in \{-3, -2, -1, 0, 1, \ldots, 7\}$ relative to treatment year; allow effects to vary by time
-- **Aggregate ATT**: Simple average of post-treatment $\beta_h$ (h ≥ 0); report bootstrap CIs (1,000 reps)
-- **Pre-trend testing** (Roth 2022 critique):
-  - Report pre-treatment $\beta_h$ (h < 0) with 95% CIs; do NOT report p-values
-  - Assess magnitude visually: Are pre-trends negligible relative to post-treatment effects?
-  - If pre-trends notable but parallel (slopes), parallel trends still plausible
+### Difference-in-Differences: Event-Study with Single Cohort
+- **Estimating equation**: $Y_{i,t} = \alpha_i + \lambda_t + \sum_{h=-2}^{1} \beta_h \cdot \text{Treated}_i \cdot \mathbb{1}[t = h] + X_i \gamma + \varepsilon_{i,t}$
+  - h = {-2, -1, 0, +1} corresponds to ACS {2012, 2014, 2022, 2023}
+  - h = -1 (ACS 2014) is the reference period (coefficient normalized to zero)
+  - h = -2 (ACS 2012) provides genuine **pre-trend test**
+- **Pre-trend testing** (Roth 2022 framework):
+  - Report β₋₂ with 95% CI; do NOT report p-values
+  - β₋₂ ≈ 0 combined with visual parallel trends strongly supports parallel trends assumption
   - Falsification test: Assign fires to pre-2013 years; expect ATT ≈ 0
-- **Heterogeneous effects**: Report Sun & Abraham (2021) alongside C&S as robustness; no heterogeneity bias implies results robust
+- **Aggregate ATT**: Simple average of post-treatment effects β₀ and β₊₁; report bootstrap CIs (1,000 reps)
+- **Confidence intervals**: Two-way clustered by county and time (though single cohort reduces concern about cross-cohort heterogeneity)
 
 ### Propensity-Score Matching (PS-IPW)
-- **Matching variable**: WFP 2012 quintile (primary) + pre-2013 fire history + baseline covariates (2012 ACS)
+- **Matching variables**: WFP 2012 quintile + pre-2013 fire history (acres burned log) + baseline covariates (2014 ACS: poverty, income, demographics) + RUCC code
+  - Note: 2014 ACS is used for baseline covariates (closest pre-treatment ACS period for the full sample)
 - **Method**: Logistic propensity score; inverse-probability weights: w=1 for treated, w=ê/(1−ê) for controls
 - **Trimming**: 99th percentile of weights to stabilize variance
 - **Balance diagnostics**:
   - Standardized mean differences (SMD) before and after: target SMD < 0.1 all covariates
   - Report effective sample size (ESS) of reweighted control group
   - Density plots: propensity score distributions (treated vs. control) before/after reweighting
-- **Regression adjustment** (in C&S estimation): Include WFP quintile and baseline covariates as additional covariates in the DiD model
+- **Regression adjustment** (in event-study estimation): Include WFP quintile and baseline covariates as additional covariates in the DiD model
 
 ### Robustness: Organized by Identification Threat
 **NOT** by test type. See RESEARCH_PLAN.md §4.4 for full specification:
