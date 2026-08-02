@@ -1,6 +1,6 @@
 # Research Goal: Wildfire Impact on Poverty in US Census Tracts
 
-**Last Updated**: 2026-08-02 (Updated to 6 ACS periods for robust pre-trend testing and long-run effects)  
+**Last Updated**: 2026-08-02 (Updated to 6 ACS periods: 2010, 2012, 2014, 2022, 2023, 2024; ACS 2006-2010 substitutes for unavailable 2005-2009)  
 **Status**: Design phase (tract-level + raster-based matching + trajectory estimation)
 
 ---
@@ -59,8 +59,8 @@ The study examines **medium- to long-run effects** (1–7 years post-fire) with 
 | **Long-run** (3–7 yr) | Persistence & trajectory | **Now captured via h=+2 (3–7 yrs).** ACS 2024 enables trajectory estimation — fadeout, persistence, or amplification. | Persistence of poverty effects; recovery trajectories; compositional shifts |
 | **Very long-run** (7+ yr) | Permanent effects | **Not captured.** Would require post-2024 ACS. Suggest as future extension. | Regional economic reorientation; repeated-fire compounding; intergenerational poverty transmission |
 
-**Key strength (updated 2026-08-02)**: ACS 5-year estimates now provide six snapshots (2009, 2012, 2014, 2022, 2023, 2024), yielding **three pre-treatment periods** and **three post-treatment periods**. This enables:
-- **Robust parallel trends testing**: β₋₃ and β₋₂ provide two independent pre-trend tests; can formally test H₀: β₋₃ = β₋₂ = 0
+**Key strength (updated 2026-08-02)**: ACS 5-year estimates now provide six snapshots (2010, 2012, 2014, 2022, 2023, 2024), yielding **three pre-treatment periods** and **three post-treatment periods**. This enables:
+- **Robust parallel trends testing**: β₋₃ (ACS 2010, 2006-2010) and β₋₂ (ACS 2012) provide two independent pre-trend tests; can formally test H₀: β₋₃ = β₋₂ = 0. **Note**: ACS 2006-2010 substitutes for unavailable 2005-2009
 - **Trajectory estimation**: β₀, β₊₁, β₊₂ trace poverty dynamics over 1–7 years post-fire
 - **Much stronger identification** than the prior two-period design
 
