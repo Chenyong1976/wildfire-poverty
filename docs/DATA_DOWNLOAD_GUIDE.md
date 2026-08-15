@@ -1,6 +1,10 @@
 # Week 1: Data Download Guide
 
-**Status**: Setup complete. Ready for manual data downloads.
+> **DEPRECATED (2026-08-15)**: This guide references the original county-level IPUMS microdata approach and an outdated ACS period selection. It is retained for audit purposes only.
+> 
+> **Use instead**: `docs/NHGIS_DOWNLOAD_GUIDE.md` (current) and `docs/DATA_ACQUISITION_CHECKLIST.md` (current).
+
+**Status**: Superseded — do not follow these instructions.
 
 ---
 

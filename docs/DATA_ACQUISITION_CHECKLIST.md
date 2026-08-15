@@ -1,68 +1,58 @@
 # Data Acquisition Checklist — Phase 0
 
 **Project**: Wildfire-Poverty Analysis (Census Tract Level)  
-**Date**: 2026-07-31  
+**Date**: 2026-08-15 (updated: NHGIS time series standardized; 6-period design)  
 **Status**: In progress
 
 ---
 
 ## Priority 1: Critical Data (Required Before Any Analysis)
 
-### 1a. ACS 5-year Tract-Level Extracts (IPUMS)
+### 1a. ACS Tract-Level Data (NHGIS — Time Series Standardized)
 
-| Period | Window | IPUMS Status | Action Required | Checklist |
-|--------|--------|--------------|-----------------|-----------|
-| ACS 2012 | 2008–2012 | Must extract | Download tract-level extract from IPUMS | ☐ |
-| ACS 2017 | 2013–2017 | Must extract | Download tract-level extract from IPUMS | ☐ |
-| ACS 2023 | 2019–2023 | Must extract | Download tract-level extract from IPUMS; **confirm availability (released Dec 2024)** | ☐ |
+**Source**: NHGIS (https://data2.nhgis.org/), not IPUMS. IPUMS microdata cannot produce pre-tabulated tract-level estimates; NHGIS provides summary table data with geographic boundary harmonization.
 
-**Variables to extract** (all three periods):
-- `B17001`: Poverty status
-- `B19013`: Median household income
-- `B23025`: Employment status
-- `B07001`: Residence 5 years ago (net migration proxy)
-- Margins of error (MOE) for all above
-- State FIPS, County FIPS, Tract FIPS (to construct 11-digit GEOID)
+**Why time series standardized**: Tract boundaries changed in 2010 and 2020 decennial censuses. ACS 2010 uses 2000 boundaries; ACS 2012–2014 use 2010 boundaries; ACS 2022–2024 use 2020 boundaries. NHGIS standardized (S) variants interpolate all years to a consistent geography, preventing GEOID mismatches in the panel.
 
-**Geographic level**: **Tract** (not county); filter to lower-48 US states (exclude AK, HI, PR)
+**See `docs/NHGIS_DOWNLOAD_GUIDE.md` for detailed download steps.**
 
-**Output**: Three CSV files
-- `data/raw/acs_extracts/acs_2012_tract_extract.csv` (2008–2012 window)
-- `data/raw/acs_extracts/acs_2017_tract_extract.csv` (2013–2017 window)
-- `data/raw/acs_extracts/acs_2023_tract_extract.csv` (2019–2023 window)
+| Period | Window | h | NHGIS Status | Checklist |
+|--------|--------|---|--------------|-----------|
+| ACS 2010 | 2006–2010 | −3 | Download via time series standardized extract | ☐ |
+| ACS 2012 | 2008–2012 | −2 | Download via time series standardized extract | ☐ |
+| ACS 2014 | 2010–2014 | −1 (reference) | Download via time series standardized extract (re-download fresh; prior nhgis0008 download quality uncertain) | ☐ |
+| ACS 2022 | 2018–2022 | 0 | Download via time series standardized extract | ☐ |
+| ACS 2023 | 2019–2023 | +1 | Download via time series standardized extract | ☐ |
+| ACS 2024 | 2020–2024 | +2 | Check if included in time series extract; if not, download as source table | ☐ |
 
-**Responsibility**: Manual download from IPUMS (requires account login)
+**Variables (Extract 1 — time series standardized):**
+- Poverty rate: NHGIS poverty time series, Standardized (S), Census Tract
+- Median household income: NHGIS B79 or equivalent, Standardized (S), Census Tract (**nominal; CPI-deflate to 2020$ in build scripts**)
+- Employment rate: NHGIS employment status time series, Standardized (S), Census Tract
+- MOE where available (check if NHGIS time series includes MOE columns)
 
----
+**Variables (Extract 2 — source table, all 6 periods):**
+- Net migration proxy: B07003 (Geographical Mobility in the Past Year), Census Tract, each period separately
+- If B07003 is available as time series standardized, add to Extract 1 instead
 
-### 1b. WHP 2018 Raster (USFS LANDFIRE)
+**Output**: NHGIS-named subfolders under `data/raw/acs_extracts/`; do not rename.
 
-| Item | Source | Action | Checklist |
-|------|--------|--------|-----------|
-| WHP 2018 GeoTIFF | USFS LANDFIRE portal | Download 270m resolution raster for lower-48 US | ☐ |
-| WHP 2018 metadata | USFS LANDFIRE | Confirm release date (must be before 2019 fire season for predetermined status) | ☐ |
-| CRS verification | GeoTIFF header | Verify EPSG:5070 (same as WHP 2012) | ☐ |
-
-**URL**: https://www.fs.usda.gov/ccrc/tool/wildfire-hazard-potential-wh-p (or LANDFIRE portal direct download)
-
-**Output**: `data/raw/whp_rasters/whp_2018_continuous/` (GeoTIFF, 270m resolution)
-
-**Responsibility**: Manual download from USFS website
-
-**Critical flag**: Document exact WHP 2018 release date in `docs/DATA_DICTIONARY.md` before PAP registration.
+**Responsibility**: Manual download from NHGIS (requires free account login)
 
 ---
 
-### 1c. Census 2010 Tract Shapefiles (TIGER)
+### 1b. Census 2020 Tract Shapefiles (TIGER)
+
+Use **2020 vintage** tract shapefiles to match the NHGIS standardized time series target geography.
 
 | Item | Source | Action | Checklist |
 |------|--------|--------|-----------|
-| Tract shapefiles 2010 vintage | Census TIGER/GENZ | Download shapefiles for all lower-48 states | ☐ |
-| Projection | TIGER files | Verify WGS84 (EPSG:4269 or similar); will reproject to EPSG:5070 for raster processing | ☐ |
+| Tract shapefiles 2020 vintage | Census TIGER/GENZ | Download shapefiles for all lower-48 states | ☐ |
+| Projection | TIGER files | Verify WGS84 (EPSG:4269 or similar); reproject to EPSG:5070 for raster processing | ☐ |
 
-**URL**: https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-geodatabase-files.html (2010 vintage)
+**URL**: https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-geodatabase-files.html (2020 vintage)
 
-**Output**: `data/raw/tract_shapefiles/tracts_2010.shp` (plus .shx, .dbf, .prj, etc.)
+**Output**: `data/raw/tract_shapefiles/tracts_2020.shp` (plus .shx, .dbf, .prj, etc.)
 
 **Responsibility**: Script-based download (Python `urllib` or `requests`)
 
@@ -111,22 +101,23 @@
 ### 3a. WHP Release Dates & Metadata
 
 Before PAP registration, document:
-- [ ] WHP 2012 exact release date (month/year)
-- [ ] WHP 2018 exact release date (month/year) — **CRITICAL for cohort assignment**
-- [ ] Both rasters' native resolution, CRS, and data range (e.g., WFP percentile 0–100)
-- [ ] Any differences in computation methodology between WHP 2012 and WHP 2018
+- [ ] WHP 2012 exact release date (month/year) — confirms predetermined status for 2013+ fires
+- [ ] WHP 2012 native resolution, CRS, and data range (WFP percentile 0–100)
 
-**File**: `docs/DATA_DICTIONARY.md` (new section: "WHP Raster Metadata")
+**Note**: WHP 2018 is NOT used in the current design (WHP 2012 is the sole matching raster). Remove any prior references to WHP 2018 from code and documentation.
+
+**File**: `docs/DATA_DICTIONARY.md` (section: "WHP Raster Metadata")
 
 ---
 
 ### 3b. ACS Variables & MOE Availability
 
 Document:
-- [ ] Exact variable names in IPUMS extract for each outcome (poverty, income, employment, migration)
-- [ ] MOE variable naming convention in IPUMS (e.g., B17001_MOE)
-- [ ] Confirmation that MOE available at tract level for all three periods
-- [ ] Any differences in variable definitions or MOE calculations across 2012, 2017, 2023 ACS
+- [ ] NHGIS auto-generated column codes for each outcome in the time series standardized extract (read from codebook files shipped with each NHGIS extract)
+- [ ] Whether MOE columns are included in the standardized time series files (they may or may not be)
+- [ ] CPI-U-RS deflator values used to convert income to 2020 dollars (record in data dictionary)
+- [ ] B07003 column codes from the source-table mobility extract
+- [ ] Confirmation that coverage spans all six periods (2010, 2012, 2014, 2022, 2023, 2024)
 
 **File**: `docs/DATA_DICTIONARY.md` (section: "ACS Variables & MOE")
 
@@ -134,48 +125,29 @@ Document:
 
 ## Download Instructions (Manual Steps)
 
-### Step 1: IPUMS ACS Extracts
+**Primary reference**: `docs/NHGIS_DOWNLOAD_GUIDE.md` — follow that guide for all ACS data. The steps below summarize the non-ACS downloads.
 
-1. Visit https://www.ipums.org/ (create account if needed)
-2. Navigate to IPUMS USA → Create a new extract
-3. Select samples: **ACS 2012, ACS 2017, ACS 2023** (5-year estimates)
-4. Select variables:
-   - `B17001` (Poverty)
-   - `B19013` (Median HH income)
-   - `B23025` (Employment)
-   - `B07001` (Residence 5 years ago)
-   - Geographic variables: state, county, tract FIPS
-5. Geographic level: **Tract**
-6. Specify geographic filter: Include all lower-48 US states (exclude AK, HI, PR)
-7. Download as CSV
-8. Save to `data/raw/acs_extracts/acs_[YEAR]_tract_extract.csv`
+### Step 1: NHGIS ACS Extracts
+
+See `docs/NHGIS_DOWNLOAD_GUIDE.md` for the complete step-by-step process. Summary:
+- Extract 1 (Time Series Tables tab): poverty, income, employment — Standardized (S), Census Tract
+- Extract 2 (Source Tables tab): B07003 mobility — Census Tract, all 6 ACS periods
+- Extract 3 (if needed): ACS 2024 source tables for poverty/income/employment if not in time series extract
 
 ---
 
-### Step 2: WHP 2018 Raster
-
-1. Visit USFS LANDFIRE: https://www.landfire.gov/
-2. Navigate to WHP (Wildfire Hazard Potential) data downloads
-3. Select: **WHP 2018** raster (270m, Continental US)
-4. Confirm file format: GeoTIFF
-5. Confirm projection: EPSG:5070 (if not explicitly stated, verify after download)
-6. Download and extract to `data/raw/whp_rasters/whp_2018_continuous/`
-7. **Record release date** (check metadata or USFS publication page)
-
----
-
-### Step 3: Census 2010 Tract Shapefiles
+### Step 2: Census 2020 Tract Shapefiles
 
 1. Visit Census TIGER: https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line.html
-2. Select year: **2010**
+2. Select year: **2020**
 3. Select layer: **Tract**
-4. Select geography: **Cartographic Boundary Shapefile** (500k resolution, smaller file)
-5. Download for each state (or national zipped file if available)
-6. Extract to `data/raw/tract_shapefiles/tracts_2010/`
+4. Select geography: **Cartographic Boundary Shapefile** (500k resolution)
+5. Download for each state or national zipped file
+6. Extract to `data/raw/tract_shapefiles/tracts_2020/`
 
 ---
 
-### Step 4: USDA RUCC 2013
+### Step 3: USDA RUCC 2013
 
 1. Visit USDA ERS: https://www.ers.usda.gov/
 2. Navigate to Rural-Urban Continuum Codes (RUCC)
@@ -194,17 +166,16 @@ After all downloads complete:
 
 - [ ] Each CSV file has expected columns (state FIPS, county FIPS, tract FIPS, outcome variables, MOE)
 - [ ] No obvious data corruption (e.g., all zeros, NaN, or missing values for entire columns)
-- [ ] ACS 2023 tract-level data actually available (confirm IPUMS has released 2023 ACS at tract level)
-- [ ] WHP 2018 GeoTIFF readable by `rasterio` (test in Python)
-- [ ] Tract shapefiles have 11-digit GEOID or can be reconstructed from state/county/tract FIPS
+- [ ] NHGIS time series standardized file spans all six ACS periods (check YEAR column)
+- [ ] B07003 source-table extract has six tract-level files (one per ACS period)
+- [ ] ACS 2024 coverage confirmed or flagged as separate source-table download
+- [ ] Tract shapefiles have 11-digit GEOID
 
 ### File Size Sanity Checks
 
-- [ ] ACS 2012 CSV: ~200–300 MB (tract-level, ~70,000 tracts, 4 outcomes + MOE + geo variables)
-- [ ] ACS 2017 CSV: ~200–300 MB
-- [ ] ACS 2023 CSV: ~200–300 MB
-- [ ] WHP 2018 GeoTIFF: ~200–500 MB (national raster, 270m resolution)
-- [ ] Tract shapefiles: ~100–200 MB (uncompressed)
+- [ ] NHGIS time series standardized CSV: ~400–600 MB (all periods stacked, ~74k–84k tracts × 6 periods)
+- [ ] B07003 source table CSVs: ~150–250 MB each × 6 files
+- [ ] Census 2020 tract shapefiles: ~150–250 MB (uncompressed)
 
 ---
 
@@ -212,21 +183,24 @@ After all downloads complete:
 
 | Task | Week | Owner | Status |
 |------|------|-------|--------|
-| Download IPUMS ACS 2012/2017/2023 (tract-level) | Week 1 | User (manual, IPUMS.org) | ☐ |
-| Download WHP 2018 raster + verify release date | Week 1 | User (manual, USFS LANDFIRE) | ☐ |
+| Download NHGIS time series standardized extracts (poverty, income, employment) | Week 1 | User (manual, data2.nhgis.org) | ☐ |
+| Download NHGIS B07003 source tables (mobility, all 6 periods) | Week 1 | User (manual, data2.nhgis.org) | ☐ |
+| Download ACS 2024 source tables if absent from time series extract | Week 1 | User (manual, data2.nhgis.org) | ☐ |
 | Download MTBS fire perimeters 1984–2023 | Week 1 | User (manual, USGS) | ☐ |
-| Download Census 2010 tract shapefiles | Week 1 | User (manual, Census TIGER) | ☐ |
+| Download Census 2020 tract shapefiles | Week 1 | User (manual, Census TIGER) | ☐ |
 | Download USDA RUCC 2013 | Week 1 | User (manual, USDA ERS) | ☐ |
-| Verify all downloads + document metadata | Week 2 | Code review | ☐ |
-| Update `docs/DATA_DICTIONARY.md` with WHP/ACS metadata | Week 2 | Documentation | ☐ |
-| PAP registration (contingent on WHP 2018 release date confirmation) | Week 2 | User | ☐ |
+| Verify all downloads + document NHGIS column codes from codebook | Week 2 | Code review | ☐ |
+| Update `docs/DATA_DICTIONARY.md` with WHP/ACS/CPI deflator metadata | Week 2 | Documentation | ☐ |
+| PAP registration | Week 2 | User | ☐ |
 
 ---
 
 ## Notes
 
-- **ACS 2023 availability**: Confirm that tract-level ACS 2023 (2019–2023 window) is available on IPUMS as of 2026-07-31. If not yet released, proceed with ACS 2012/2017 and plan for ACS 2023 data as available.
-- **WHP 2018 release date is critical**: This determines whether fires in 2018 belong to the WHP2012 cohort or the gap. Document before finalizing cohort boundaries in PAP.
+- **ACS data source is NHGIS, not IPUMS**: Use time series standardized (S) tables from NHGIS for all ACS outcome variables. IPUMS microdata cannot produce pre-tabulated tract-level summary statistics and should not be used for this project's primary data assembly.
+- **ACS 2024 availability on NHGIS**: Confirm whether NHGIS time series standardized tables include ACS 2024 (2020–2024). If absent, download as a source table — ACS 2024 uses 2020 boundaries (same as standardized target), so the merge is clean.
+- **WHP 2018 is NOT used**: The current design uses only WHP 2012 as the predetermined matching raster. Do not download WHP 2018.
+- **Income CPI deflation**: Median household income in NHGIS is nominal. CPI-deflate to 2020 dollars using CPI-U-RS in `code/01_build/`. Record deflator values in `docs/DATA_DICTIONARY.md`.
 - **Symlink vs. copy**: For MTBS and WHP 2012 (already in wildfire-finance), create symlinks rather than copies to avoid duplication:
   ```bash
   ln -s ../../wildfire-finance/data/raw/mtbs_perims data/raw/mtbs_perimeters

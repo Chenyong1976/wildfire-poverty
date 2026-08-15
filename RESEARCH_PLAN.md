@@ -1,6 +1,6 @@
 # Research Plan: Wildfire Impact on Poverty and Economic Outcomes
 
-**Last Updated**: 2026-07-31 (MAJOR REVISION: Single Clean Cohort Design)  
+**Last Updated**: 2026-08-15 (Data source: NHGIS time series standardized; 6-period event-study design)  
 **Principal Investigator**: [Your Name]  
 **Project Directory**: `~/wildfire-poverty-analysis/`
 
@@ -59,19 +59,21 @@ Wildfire frequency and severity have increased dramatically across the US over r
 
 #### Temporal Structure
 
-**Three non-overlapping measurement periods** (ACS 5-year estimates):
+**Six measurement periods** (ACS 5-year estimates) — three pre-treatment for robust parallel-trends testing, three post-treatment for trajectory estimation:
 
-| Period | ACS Vintage | Window | Relative to Fires | Sample Size |
-|--------|-------------|--------|------------------|-------------|
-| **Baseline (Pre)** | ACS 2012 | 2008–2012 | Pre-fire (before 2015) | All tracts |
-| **Medium-run (Post1)** | ACS 2022 | 2018–2022 | 1–4 years post-fire | ~700 treated + ~40k control |
-| **Later medium-run (Post2)** | ACS 2023 | 2019–2023 | 2–6 years post-fire | ~700 treated + ~40k control |
+| Period | ACS Vintage | Window | Relative to Fires | Event-study h |
+|--------|-------------|--------|------------------|---------------|
+| **Pre 1** | ACS 2010 | 2006–2010 | Far pre-fire | h = −3 |
+| **Pre 2** | ACS 2012 | 2008–2012 | Pre-fire | h = −2 |
+| **Reference** | ACS 2014 | 2010–2014 | Reference (normalized to 0) | h = −1 |
+| **Post 1** | ACS 2022 | 2018–2022 | 1–4 years post-fire | h = 0 |
+| **Post 2** | ACS 2023 | 2019–2023 | 2–6 years post-fire | h = +1 |
+| **Post 3** | ACS 2024 | 2020–2024 | 3–7 years post-fire | h = +2 |
 
-**Critical clarification on temporal overlap**:
-- ACS 2022 (2018–2022) and ACS 2023 (2019–2023) share years 2019–2022 — this is **expected and acceptable**
-- What matters for identification is that **fire years 2015–2017 are NOT within either ACS measurement window**
-- Two post-fire periods allow estimation of **event-study dynamics** (effects at 1–4 years vs. 2–6 years)
-- Overlapping measurement windows are standard in panel data and provide independent information
+**Design advantages**:
+- Three pre-periods (h ∈ {−3, −2, −1}) provide two independent pre-trend tests (β₋₃ and β₋₂) with h = −1 as reference — very strong parallel-trends evidence if both ≈ 0
+- Three post-periods allow trajectory estimation: fade, persist, or amplify
+- ACS 2010 uses 2000 tract boundaries; ACS 2012–2014 use 2010 boundaries; ACS 2022–2024 use 2020 boundaries — **use NHGIS time series standardized (S) tables** to harmonize across these boundary changes (see `docs/NHGIS_DOWNLOAD_GUIDE.md`)
 
 #### Control Group Construction
 
@@ -119,20 +121,23 @@ Where:
 - $\epsilon_{i,t}$ = error term, clustered by county (parent geography of tract)
 - Weights: inverse-probability weights $w_i$ from PS-IPW matching
 
-**Event-study variant** (three time periods allow limited event-study):
+**Event-study specification** (six periods, h = −1 is reference):
 
-$$\text{Outcome}_{i,t} = \alpha_i + \lambda_t + \sum_{h \in \{-1, 0, +1\}} \beta_h \cdot \text{Treated}_i \cdot \mathbb{1}[t = t_h] + X_{i,2012} \gamma + \epsilon_{i,t}$$
+$$\text{Outcome}_{i,t} = \alpha_i + \lambda_t + \sum_{h \in \{-3,-2,0,+1,+2\}} \beta_h \cdot \text{Treated}_i \cdot \mathbb{1}[t = t_h] + X_{i,2014} \gamma + \epsilon_{i,t}$$
 
 Where $h$ indexes relative time:
-- $h = -1$: ACS 2012 (normalized to 0, reference period)
+- $h = -3$: ACS 2010 (far pre-trend test)
+- $h = -2$: ACS 2012 (pre-trend test)
+- $h = -1$: ACS 2014 (reference period, coefficient normalized to zero — omitted from sum)
 - $h = 0$: ACS 2022 (1–4 years post-fire)
 - $h = +1$: ACS 2023 (2–6 years post-fire)
+- $h = +2$: ACS 2024 (3–7 years post-fire)
 
 **Interpretation**:
-- $\beta_h$ = ATT $h$ periods relative to fires (treatment year normalized to 2015–2017 midpoint ≈ 2016)
-- $\beta_0$ = medium-run effect (1–4 years post-fire)
-- $\beta_1$ = later medium-run effect (2–6 years post-fire)
-- If $\beta_1 \approx \beta_0$, effects persist; if $\beta_1 > \beta_0$, effects amplify; if $\beta_1 < \beta_0$, effects decay
+- Pre-trend test: β₋₃ ≈ 0 and β₋₂ ≈ 0 provide strong parallel-trends evidence (Roth 2022)
+- $\beta_0$, $\beta_1$, $\beta_2$ = medium-run and long-run ATT
+- Trajectory: $\beta_2 \approx \beta_0$ → persistent; $\beta_2 > \beta_0$ → amplifying; $\beta_2 < \beta_0$ → decaying
+- Baseline covariates $X_{i,2014}$ use the ACS 2014 period (h = −1), the closest pre-treatment ACS period
 
 **Robustness variants**:
 
@@ -162,24 +167,23 @@ Where $h$ indexes relative time:
 
 ### Sample Frame
 
-- **Geographic scope**: All lower-48 US states (~70,000 census tracts; Census 2010 definition)
-- **Time period**: ACS 5-year estimates, three periods:
-  - Baseline: 2012 (2008–2012 window)
-  - Post-treatment 1: 2022 (2018–2022 window)
-  - Post-treatment 2: 2023 (2019–2023 window)
-- **Unit of analysis**: Census tract (Census 2010; ~70,000 tracts nationally)
+- **Geographic scope**: All lower-48 US states (~70,000 census tracts; harmonized to 2020 boundaries via NHGIS standardized series)
+- **Time period**: ACS 5-year estimates, **six periods**:
+  - Pre-treatment: 2010 (h = −3), 2012 (h = −2), 2014 (h = −1, reference)
+  - Post-treatment: 2022 (h = 0), 2023 (h = +1), 2024 (h = +2)
+- **Unit of analysis**: Census tract (NHGIS standardized geography; ~70,000–84,000 tracts depending on vintage)
 - **Expected sample after screening**: ~700 treated + ~40,000 never-treated = **~40,700 tracts total**
 
 ### Outcome Variables
 
 | Outcome | Source | Definition | Notes |
 |---------|--------|-----------|-------|
-| **Poverty rate** (primary) | ACS 5-yr | % population below federal poverty line | 5-year estimates essential for rural reliability |
-| **Median HH income** | ACS 5-yr | Median household income (nominal, adjusted to 2020$) | Secondary outcome |
-| **Employment rate** | ACS 5-yr | % of civilian labor force employed | Captures labor market adjustment |
-| **Net-migration rate** (mediator) | ACS 5-yr | % moved in (past 5 yrs) minus % moved out; proxy for net migration | Descriptive decomposition mechanism |
+| **Poverty rate** (primary) | NHGIS time series standardized | % population below federal poverty line | 5-year estimates essential for rural reliability |
+| **Median HH income** | NHGIS time series standardized | Median household income (nominal; CPI-deflate to 2020$ in build scripts) | Secondary outcome |
+| **Employment rate** | NHGIS time series standardized | % of civilian labor force employed | Captures labor market adjustment |
+| **Net-migration rate** (mediator) | NHGIS B07003 source table (all 6 periods) | In-migration rate proxy (% moved in past year); see note on gross vs. net | Descriptive decomposition mechanism |
 
-All outcomes available at **tract level only for 5-year estimates**. No 1-year or 3-year estimates used (rural data quality constraint).
+All outcomes available at **tract level only for 5-year estimates**. No 1-year or 3-year estimates used (rural data quality constraint). NHGIS time series standardized (S) variant is required to handle tract boundary changes across the 2010–2024 study window.
 
 ### Treatment Definition
 
@@ -194,12 +198,13 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 
 | Variable | Source | Format | Acquisition Status |
 |----------|--------|--------|-------------------|
-| Poverty rate, income, employment, net migration | ACS 5-yr (IPUMS) | Tract-level CSV | ⏳ Pending IPUMS download |
-| Fire perimeters & treatment assignment | MTBS (USGS) | Shapefile | ✓ Linked from wildfire-health |
-| WFP 2012 (primary matching) | USFS LANDFIRE | 270m raster, EPSG:5070 | ✓ Linked from wildfire-health |
-| Census tract boundaries | Census TIGER | Shapefile, Census 2010 | ⏳ To download |
-| Pre-2013 fire history | MTBS 1984–2012 | Shapefile | ✓ Linked from wildfire-health |
-| RUCC 2013 | USDA ERS | County-level codes | ⏳ To parse from wildfire-health |
+| Poverty, income, employment | NHGIS time series standardized (S), tract | CSV (NHGIS extract) | ⏳ Pending NHGIS download (see `docs/NHGIS_DOWNLOAD_GUIDE.md`) |
+| Net migration proxy | NHGIS B07003 source table, tract, all 6 periods | CSV (NHGIS extract) | ⏳ Pending NHGIS download |
+| Fire perimeters & treatment assignment | MTBS (USGS) | Shapefile | ✓ Linked from wildfire-finance |
+| WFP 2012 (primary matching) | USFS LANDFIRE | 270m raster, EPSG:5070 | ✓ Linked from wildfire-finance |
+| Pre-2013 fire history | MTBS 1984–2012 | Shapefile | ✓ Linked from wildfire-finance |
+| RUCC 2013 | USDA ERS | County-level codes | ⏳ To parse from wildfire-finance |
+| Tract shapefiles (for fire-tract spatial join) | Census TIGER 2020 | Shapefile | ⏳ To download |
 
 ### Data Quality Screening
 
@@ -306,10 +311,10 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 
 | Milestone | Criterion | Target |
 |-----------|-----------|--------|
-| **Data complete** | All ACS 2012/2022/2023 + fire/WFP/RUCC downloaded and validated | Week 2 |
+| **Data complete** | NHGIS time series standardized extracts (all 6 periods) + B07003 source tables + fire/WFP/RUCC downloaded and validated | Week 2 |
 | **Sample finalized** | ~700 treated + ~40k control after all screens; MOE, population filters documented | Week 3 |
 | **Balance achieved** | SMD < 0.10 all covariates post-IPW; ESS ≥ 500 | Week 4 |
-| **Main estimation complete** | ATT point estimate + 95% CI; event-study $\beta_h$ (h ∈ {−1, 0, +1}) | Week 5 |
+| **Main estimation complete** | ATT point estimate + 95% CI; event-study $\beta_h$ (h ∈ {−3, −2, 0, +1, +2}) with h=−1 as reference | Week 5 |
 | **Robustness complete** | ≥8 robustness specs tabulated; findings stable/sensitive documented | Week 7 |
 | **Publication-ready output** | All tables LaTeX-formatted, figures 300 DPI, data dictionary | Week 8 |
 | **Manuscript draft** | Introduction through Discussion drafted; results embedded; appendix methodology notes | Week 9 |
@@ -322,10 +327,11 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 
 **Contents to register**:
 - Single-cohort design (fires 2015–2017, g=2016 or g=0)
-- ACS periods: 2012, 2022, 2023
+- ACS periods: 2010 (h=−3), 2012 (h=−2), 2014 (h=−1 reference), 2022 (h=0), 2023 (h=+1), 2024 (h=+2)
+- Data source: NHGIS time series standardized (S) tables at census tract level
 - Primary outcome: Poverty rate
-- Secondary outcomes: Income, employment, migration
-- Main estimand: ATT via DiD with PS-IPW matching on WFP 2012 raster
+- Secondary outcomes: Income (2020$), employment, migration proxy
+- Main estimand: ATT via event-study DiD with PS-IPW matching on WFP 2012 raster
 - Threats and mitigations
 - Robustness tests (organized by threat)
 
