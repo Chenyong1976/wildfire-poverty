@@ -50,9 +50,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Majority of fires occur in rural areas; 5-year sampling provides valid estimates despite larger MOE
 - **Approved ACS periods** (event-study design with robust pre-trend testing and long-run effects): 2010 (2006–2010), 2012 (2008–2012), 2014 (2010–2014), 2022 (2018–2022), 2023 (2019–2023), 2024 (2020–2024)
   - **Pre-treatment periods**: h ∈ {−3, −2, −1}
-    - 2010 ACS = h=−3 (4–5 years pre-fire); far pre-trend test; **substitutes for unavailable 2005-2009**
-    - 2012 ACS = h=−2 (3–4 years pre-fire); pre-trend test
-    - 2014 ACS = h=−1 (1–4 years pre-fire); reference period for event study
+    - 2010 ACS = h=−3 (4–5 years pre-fire); **auxiliary** pre-trend check only — uses 2000-vintage tract boundaries, differs from 2012/2014; treat as appendix robustness, not primary pre-trend test
+    - 2012 ACS = h=−2 (3–4 years pre-fire); **primary** pre-trend test (2010 boundaries)
+    - 2014 ACS = h=−1 (1–4 years pre-fire); reference period for event study (2010 boundaries)
   - **Post-treatment periods**: h ∈ {0, +1, +2}
     - 2022 ACS = h=0 (1–4 years post-fire); medium-run effect
     - 2023 ACS = h=+1 (2–6 years post-fire); medium-run effect

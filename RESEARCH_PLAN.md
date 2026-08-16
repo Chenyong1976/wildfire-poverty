@@ -71,9 +71,29 @@ Wildfire frequency and severity have increased dramatically across the US over r
 | **Post 3** | ACS 2024 | 2020–2024 | 3–7 years post-fire | h = +2 |
 
 **Design advantages**:
-- Three pre-periods (h ∈ {−3, −2, −1}) provide two independent pre-trend tests (β₋₃ and β₋₂) with h = −1 as reference — very strong parallel-trends evidence if both ≈ 0
+- Three pre-periods provide two independent pre-trend tests (β₋₃ and β₋₂) with h = −1 as reference
 - Three post-periods allow trajectory estimation: fade, persist, or amplify
-- ACS 2010 uses 2000 tract boundaries; ACS 2012–2014 use 2010 boundaries; ACS 2022–2024 use 2020 boundaries — **use NHGIS time series standardized (S) tables** to harmonize across these boundary changes (see `docs/NHGIS_DOWNLOAD_GUIDE.md`)
+- Primary pre-trend tests are h = −2 and h = −1 (both on 2010 tract boundaries); h = −3 is an auxiliary extended pre-trend check (see boundary note below)
+
+**Tract boundary harmonization — approach and fallback**:
+
+ACS 2010 uses 2000-vintage tract boundaries; ACS 2012–2014 use 2010-vintage boundaries; ACS 2022–2024 use 2020-vintage boundaries. NHGIS Standardized (S) time series tables do not exist for ACS data at the tract level (only decennial census 1990/2000/2010/2020 is available as standardized). The nominal (N) time series is the only NHGIS ACS option.
+
+**Primary approach — nominal balanced panel**: Use the NHGIS nominal time series and restrict to tracts present in all six periods. NHGIS nominal integration retains a tract only when its code is in use consistently across years; dropped tracts are those split, merged, or renumbered at the 2000→2010 or 2010→2020 boundary change. The balanced panel retains ~60,000–70,000 of ~97,000 tracts. Western rural and peri-urban tracts — where nearly all MTBS fires occur — have low boundary-change rates, so treated-tract retention is expected to be high (>95%).
+
+**Required diagnostic** (run after `02_fire_treatment.py`):
+```python
+pct_treated_retained = treated_tracts["NHGISCODE"].isin(balanced_panel["NHGISCODE"]).mean()
+# If >= 0.95: nominal balanced panel is adequate; document and proceed.
+# If < 0.95: implement fallback crosswalk (see below).
+```
+Report retention rate in the paper's data section, broken down by RUCC.
+
+**Fallback — Census 2010–2020 Tract Relationship File** (implement only if diagnostic fails):
+Apply `tab20_tract20_tract10_natl.zip` (Census Bureau, freely available) to aggregate ACS 2022/2023/2024 counts from 2020 boundaries back to 2010 definitions using `POPPCT_20` weights. Aggregate counts (not rates), then recompute rates from aggregated numerator and denominator. For ACS 2010 (2000 boundaries), apply the 2000–2010 relationship file or drop h = −3 from the main specification and retain it as an appendix robustness check.
+
+**Role of h = −3 (ACS 2010)**:  
+ACS 2010 is on 2000-vintage boundaries, which differ from the 2010-vintage used by h = −2 and h = −1. Under nominal integration, only tracts with consistent codes across all three decennial definitions are retained, which is a stricter requirement. Treat h = −3 as a secondary pre-trend check (report in appendix or as an additional coefficient alongside the main event-study plot). The two primary pre-trend tests are h = −2 and h = −1, which share 2010 boundary definitions and provide clean parallel-trends evidence.
 
 #### Control Group Construction
 
@@ -198,7 +218,7 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 
 | Variable | Source | Format | Acquisition Status |
 |----------|--------|--------|-------------------|
-| Poverty, income, employment | NHGIS time series standardized (S), tract | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_inc_pov_emp/nhgis0012_ts_nominal_tract.csv` |
+| Poverty, income, employment | NHGIS time series **nominal (N)**, tract — only ACS option (standardized S not available for ACS at tract level) | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_inc_pov_emp/nhgis0012_ts_nominal_tract.csv` |
 | Net migration proxy | NHGIS B07003 source table, tract, all 6 periods | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_mig/nhgis0013_ds*_tract.csv` (6 files) |
 | Fire perimeters & treatment assignment | MTBS (USGS) | Shapefile | ✓ Linked from wildfire-finance |
 | WFP 2012 (primary matching) | USFS LANDFIRE | 270m raster, EPSG:5070 | ✓ Linked from wildfire-finance |
@@ -213,7 +233,7 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 - **MOE threshold**: Drop tracts if poverty denominator (AX7AA + AX7AB) < 100; flag but retain tracts where poverty count MOE > 30% of count (tract-level ACS poverty counts typically have MOE ~50% of count — a hard 30% drop threshold would remove ~90% of tracts)
 - **Population minimum**: Drop tracts with population < 500
 - **Documentation**: Report N tracts dropped by each screen, broken down by urbanicity (RUCC)
-- **Expected final sample**: ~40,000–50,000 tracts × 3 periods = ~120,000–150,000 observations
+- **Expected final sample**: ~60,000–70,000 tracts (balanced panel, all 6 periods) × 6 periods = ~360,000–420,000 observations; after PS-IPW control group construction, analysis uses ~700 treated + ~40,000–50,000 controls
 
 ---
 

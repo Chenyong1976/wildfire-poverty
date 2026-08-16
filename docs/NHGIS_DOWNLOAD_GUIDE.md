@@ -6,77 +6,62 @@
 
 ---
 
-## ACTION REQUIRED: Re-Download as Standardized (S)
+## Boundary Harmonization: Why Nominal (N) Is the Correct Download
 
-**The current time series file (`nhgis0012_ts_nominal_tract.csv`) uses Nominal (N) integration and must be replaced before any estimation.**
+**The current time series file (`nhgis0012_ts_nominal_tract.csv`) is correct and does not need to be re-downloaded.**
 
-The nominal file links tracts by name and code across years without adjusting for boundary changes. When we enforced a balanced panel (all 6 periods present), 37% of tracts were dropped — these are disproportionately tracts that were split or merged between the 2000, 2010, and 2020 decennial censuses. The attrition is non-random and would bias the sample away from urban and peri-urban areas where boundary changes are most common.
+NHGIS offers two time series integration methods:
+- **Nominal (N)**: links tracts by their name/code across years; does not adjust for boundary changes.
+- **Standardized (S)**: interpolates data to a consistent boundary using block-level population weights.
 
-The Standardized (S) variant interpolates all periods to a consistent 2020 boundary using block-level population weights. The balanced panel attrition under standardized integration should be near zero.
+For **ACS data at the census tract level, Standardized (S) tables do not exist**. NHGIS only offers standardized integration for decennial census data (1990/2000/2010/2020). The nominal series is the only ACS option.
 
-**Steps to replace the nominal file:**
+**How the nominal balanced panel addresses the boundary problem**: By restricting to tracts that appear in all six ACS periods, we retain only tracts whose code was in use consistently across the 2000, 2010, and 2020 boundary vintages. Tracts dropped from the balanced panel are those that were split, merged, or renumbered at a decennial boundary change. The current balanced panel retains ~60,000–70,000 tracts from ~97,000 with at least one period. Western rural tracts — where fires predominantly occur — have low boundary-change rates, so treated-tract retention is expected to be high.
 
-1. Go to [https://data2.nhgis.org/](https://data2.nhgis.org/) and log in.
-2. Click **"Get Data"** → **"Time Series Tables"** tab.
-3. Search for each of the four tables (poverty, income, employment status, population).
-4. For each table, you will see two variants listed side by side:
-   - **(N) Nominal** — do NOT select this
-   - **(S) Standardized** — select this one
-   The label "(S)" or "(Standardized)" appears explicitly in the table name in the NHGIS interface.
-5. Add all four **(S) Census Tract** variants to your cart and submit the extract.
-6. After downloading and unzipping, **verify** by opening the codebook (`.txt` file shipped with the extract). It must say:
-   ```
-   Geographic integration: Standardized
-   ```
-   If it says `Nominal`, you selected the wrong variant — delete and re-download.
-7. Save the new extract to `data/raw/acs_extracts/nhgis_inc_pov_emp_std/` (different folder from the nominal file, which can be archived or deleted after verification).
-
-**How to tell N from S in the NHGIS interface:**  
-In the Time Series Tables results list, each entry shows the integration method in parentheses after the table name, e.g., *"Persons Below Poverty Level (S)"* vs *"Persons Below Poverty Level (N)"*. If you are unsure which you selected, check your Data Cart before submitting — the integration method is shown for each item in the cart.
-
-**Build script update after re-download:**  
-After the standardized file is in place, update `TS_FILE` in `code/01_build/01_acs_nhgis_load.py` to point to the new folder. The migration merge will also shift from `(GISJOIN, YEAR)` to `(FIPS11, YEAR)` — see the migration merge note below for details.
+**If nominal balanced panel is inadequate** (determined by diagnostic after fire treatment assignment — see RESEARCH_PLAN.md §2): Apply the Census Bureau's 2010–2020 Tract Relationship File (`tab20_tract20_tract10_natl.zip`) to aggregate ACS 2022/2023/2024 counts from 2020 boundaries to 2010 definitions. Download from: https://www.census.gov/geographies/reference-files/time-series/geo/relationship-files.html
 
 ---
 
 ## What You Are Downloading
 
-Four outcome tables (poverty, income, employment, population), Standardized (S) time series, Census Tract:
+Four outcome tables (poverty, income, employment, population) as Nominal (N) time series at Census Tract — the only ACS option. Migration as source tables (one file per period). Both downloads are **complete**.
 
-| Period label | ACS window | Event-study h | Status |
-|---|---|---|---|
-| ACS 2010 | 2006–2010 | h = −3 | **Re-download (S)** |
-| ACS 2012 | 2008–2012 | h = −2 | **Re-download (S)** |
-| ACS 2014 | 2010–2014 | h = −1 (reference) | **Re-download (S)** |
-| ACS 2022 | 2018–2022 | h = 0 | **Re-download (S)** |
-| ACS 2023 | 2019–2023 | h = +1 | **Re-download (S)** |
-| ACS 2024 | 2020–2024 | h = +2 | **Re-download (S)** |
+| Period label | ACS window | Event-study h | Tract boundary vintage | Status |
+|---|---|---|---|---|
+| ACS 2010 | 2006–2010 | h = −3 (auxiliary pre-trend) | 2000 | ✓ complete |
+| ACS 2012 | 2008–2012 | h = −2 (primary pre-trend) | 2010 | ✓ complete |
+| ACS 2014 | 2010–2014 | h = −1 (reference) | 2010 | ✓ complete |
+| ACS 2022 | 2018–2022 | h = 0 | 2020 | ✓ complete |
+| ACS 2023 | 2019–2023 | h = +1 | 2020 | ✓ complete |
+| ACS 2024 | 2020–2024 | h = +2 | 2020 | ✓ complete |
 
-The migration files (B07003 source tables, `nhgis_mig/`) are already correct and do **not** need to be re-downloaded.
+**h = −3 note**: ACS 2010 uses 2000-vintage boundaries. In the nominal balanced panel, h = −3 is retained only for tracts consistent across all three decennial definitions. Treat h = −3 as an auxiliary pre-trend check; the two primary pre-trend tests are h = −2 and h = −1 (both on 2010 boundaries).
+
+Migration source tables (B07003) — all six periods complete in `data/raw/acs_extracts/nhgis_mig/`.
 
 ---
 
-## Which Table Type to Use: Time Series Standardized, Not Source Tables
+## Which Table Type to Use: Nominal (N) — the Only ACS Option
 
 NHGIS provides two table categories:
 
-- **Source Tables**: the standard cross-sectional ACS tables (B17001, B19013, etc.) at their original geography for each release year.
-- **Time Series Tables**: NHGIS-constructed harmonized series across years, available in two variants:
-  - **Nominal (N)**: original geographic units for each time point — boundaries are NOT harmonized.
-  - **Standardized (S)**: data are interpolated via block-level population weights to a consistent set of boundaries across all years.
+- **Source Tables**: standard cross-sectional ACS tables at their original geography for each release year.
+- **Time Series Tables**: NHGIS-constructed series across years, in two variants:
+  - **Nominal (N)**: original geographic units per time point — boundaries are NOT harmonized.
+  - **Standardized (S)**: interpolated to consistent boundaries via block-level population weights.
 
-**Use the Standardized (S) variant of Time Series Tables.** This is essential because census tract boundaries change between decennial censuses. Your study spans ACS 2010 (which uses 2000 tract definitions) through ACS 2024 (which uses 2020 tract definitions). Without harmonization, a GEOID in the 2010 data refers to a different geographic area than the same GEOID in the 2022 data. The standardized series handles this automatically.
+**For ACS data at the census tract level, Standardized (S) is not available.** NHGIS only offers standardized integration for decennial census data (1990/2000/2010/2020). The Nominal (N) time series is the correct and only ACS option. Boundary consistency is handled by restricting to a balanced panel of tracts present in all six periods — see RESEARCH_PLAN.md §2 for the full boundary harmonization strategy and fallback crosswalk.
 
-In the NHGIS Data Finder, select the **"Time Series Tables"** tab (not "Source Tables"). Filter by the relevant topic, then add the **Standardized (S)** version of each table to your cart.
+In the NHGIS Data Finder, select the **"Time Series Tables"** tab. Filter by topic, then add the **Nominal (N), Census Tract** variant.
 
 ### Variables to Locate (Search by Topic)
 
 | Outcome | Search term in NHGIS | What to look for |
 |---|---|---|
-| Poverty rate | `poverty` | "Persons Below Poverty Level" — ACS time series, Standardized (S) |
-| Median household income | `median household income` | NHGIS B79 or equivalent — ACS time series, Standardized (S) |
-| Employment rate | `employment status` | "Civilian Labor Force / Employment Status" — ACS time series, Standardized (S) |
-| Net migration proxy | `geographical mobility` | B07003 equivalent — check availability as time series; see note below |
+| Poverty rate | `poverty` | "Persons Below Poverty Level" — ACS time series, **Nominal (N)**, Census Tract |
+| Median household income | `median household income` | NHGIS B79 or equivalent — ACS time series, **Nominal (N)**, Census Tract |
+| Employment rate | `employment status` | "Civilian Labor Force / Employment Status" — ACS time series, **Nominal (N)**, Census Tract |
+| Net migration proxy | `geographical mobility` | B07003 — download as source table (not time series); see merge note below |
 
 NHGIS assigns its own table codes to time series tables (e.g., B79, A57). The exact codes visible in the interface change as NHGIS updates its library; identify the correct table by topic label rather than memorizing a code.
 
