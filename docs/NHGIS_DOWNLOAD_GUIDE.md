@@ -6,20 +6,53 @@
 
 ---
 
+## ACTION REQUIRED: Re-Download as Standardized (S)
+
+**The current time series file (`nhgis0012_ts_nominal_tract.csv`) uses Nominal (N) integration and must be replaced before any estimation.**
+
+The nominal file links tracts by name and code across years without adjusting for boundary changes. When we enforced a balanced panel (all 6 periods present), 37% of tracts were dropped — these are disproportionately tracts that were split or merged between the 2000, 2010, and 2020 decennial censuses. The attrition is non-random and would bias the sample away from urban and peri-urban areas where boundary changes are most common.
+
+The Standardized (S) variant interpolates all periods to a consistent 2020 boundary using block-level population weights. The balanced panel attrition under standardized integration should be near zero.
+
+**Steps to replace the nominal file:**
+
+1. Go to [https://data2.nhgis.org/](https://data2.nhgis.org/) and log in.
+2. Click **"Get Data"** → **"Time Series Tables"** tab.
+3. Search for each of the four tables (poverty, income, employment status, population).
+4. For each table, you will see two variants listed side by side:
+   - **(N) Nominal** — do NOT select this
+   - **(S) Standardized** — select this one
+   The label "(S)" or "(Standardized)" appears explicitly in the table name in the NHGIS interface.
+5. Add all four **(S) Census Tract** variants to your cart and submit the extract.
+6. After downloading and unzipping, **verify** by opening the codebook (`.txt` file shipped with the extract). It must say:
+   ```
+   Geographic integration: Standardized
+   ```
+   If it says `Nominal`, you selected the wrong variant — delete and re-download.
+7. Save the new extract to `data/raw/acs_extracts/nhgis_inc_pov_emp_std/` (different folder from the nominal file, which can be archived or deleted after verification).
+
+**How to tell N from S in the NHGIS interface:**  
+In the Time Series Tables results list, each entry shows the integration method in parentheses after the table name, e.g., *"Persons Below Poverty Level (S)"* vs *"Persons Below Poverty Level (N)"*. If you are unsure which you selected, check your Data Cart before submitting — the integration method is shown for each item in the cart.
+
+**Build script update after re-download:**  
+After the standardized file is in place, update `TS_FILE` in `code/01_build/01_acs_nhgis_load.py` to point to the new folder. The migration merge will also shift from `(GISJOIN, YEAR)` to `(FIPS11, YEAR)` — see the migration merge note below for details.
+
+---
+
 ## What You Are Downloading
 
-Five ACS 5-year periods, each at census tract geography, four outcome tables each:
+Four outcome tables (poverty, income, employment, population), Standardized (S) time series, Census Tract:
 
 | Period label | ACS window | Event-study h | Status |
 |---|---|---|---|
-| ACS 2010 | 2006–2010 | h = −3 | **Download** |
-| ACS 2012 | 2008–2012 | h = −2 | **Download** |
-| ACS 2014 | 2010–2014 | h = −1 (reference) | **Download** |
-| ACS 2022 | 2018–2022 | h = 0 | **Download** |
-| ACS 2023 | 2019–2023 | h = +1 | **Download** |
-| ACS 2024 | 2020–2024 | h = +2 | **Download** |
+| ACS 2010 | 2006–2010 | h = −3 | **Re-download (S)** |
+| ACS 2012 | 2008–2012 | h = −2 | **Re-download (S)** |
+| ACS 2014 | 2010–2014 | h = −1 (reference) | **Re-download (S)** |
+| ACS 2022 | 2018–2022 | h = 0 | **Re-download (S)** |
+| ACS 2023 | 2019–2023 | h = +1 | **Re-download (S)** |
+| ACS 2024 | 2020–2024 | h = +2 | **Re-download (S)** |
 
-**Note on existing ACS 2014 file**: A previous download exists at `data/raw/acs_extracts/nhgis0008_csv/nhgis0008_ds206_20145_tract.csv`. Re-download fresh to ensure data quality; you can delete or archive the old file after verifying the new extract.
+The migration files (B07003 source tables, `nhgis_mig/`) are already correct and do **not** need to be re-downloaded.
 
 ---
 
@@ -47,9 +80,25 @@ In the NHGIS Data Finder, select the **"Time Series Tables"** tab (not "Source T
 
 NHGIS assigns its own table codes to time series tables (e.g., B79, A57). The exact codes visible in the interface change as NHGIS updates its library; identify the correct table by topic label rather than memorizing a code.
 
-**Note on geographical mobility — status and merge strategy**: B07003 (1-year geographical mobility by sex) has been downloaded as source tables for all six periods (`data/raw/acs_extracts/nhgis_mig/nhgis0013_ds*_tract.csv`). Unlike the income/poverty/employment time series, these are separate cross-sections each using their own year's tract boundaries. **Do not merge migration to the time series using `GISJOIN` alone** — GISJOIN is year-specific and will silently misalign if the wrong year's rows are targeted. Instead, construct an 11-digit FIPS code (`STATEA` zero-padded to 2 + `COUNTYA` zero-padded to 3 + `TRACTA` zero-padded to 6) from both the migration and time series files, then join on `(FIPS11, YEAR)` within each period. This is robust to any GISJOIN formatting differences between extract types. Tract boundary changes across decades (2010→2020 vintage) will leave a small number of unmatched tracts; document the match rate and drop unmatched rows; this is acceptable because migration is a descriptive mediator, not a primary outcome.
+**Note on geographical mobility — merge strategy (standardized time series)**: B07003 (1-year geographical mobility by sex) has been downloaded as source tables for all six periods (`data/raw/acs_extracts/nhgis_mig/nhgis0013_ds*_tract.csv`). These source tables use year-specific tract boundaries (2000 vintage for ACS 2010; 2010 vintage for ACS 2012/2014; 2020 vintage for ACS 2022/2023/2024). The standardized time series, by contrast, places all periods on 2020 boundaries. Because the two files use **different boundary vintages for pre-treatment periods**, you cannot merge via `GISJOIN` — GISJOINs reference different geographic definitions.
 
-In-migration rate: `(JXZE001 − JXZE004) / JXZE001` for ACS 2010; variable prefix changes by period — always verify against the codebook for each file. Include the MOE columns (suffix M) for data quality screening.
+**Use FIPS11 as the within-year merge key:**
+1. In the standardized time series file: construct `FIPS11 = STATEFP.zfill(2) + COUNTYFP.zfill(3) + TRACTA.zfill(6)`
+2. In each migration file: construct `FIPS11 = STATEA.zfill(2) + COUNTYA.zfill(3) + TRACTA.zfill(6)`
+3. Merge on `(FIPS11, YEAR)` within each ACS period
+
+Expected match rates: ACS 2022/2023/2024 will match nearly perfectly (both on 2020 boundaries). ACS 2010/2012/2014 will have some unmatched tracts where boundaries changed between the migration file's vintage and 2020. Document the match rate by period; accept unmatched rows as missing for migration (descriptive mediator, not primary outcome).
+
+Variable prefix lookup (verified from codebooks):
+
+| ACS period | NHGIS code | Total | Same house | In-migration formula |
+|---|---|---|---|---|
+| 2006–2010 | JXZ | JXZE001 | JXZE004 | (JXZE001 − JXZE004) / JXZE001 |
+| 2008–2012 | Q4P | Q4PE001 | Q4PE004 | (Q4PE001 − Q4PE004) / Q4PE001 |
+| 2010–2014 | ABND | ABNDE001 | ABNDE004 | (ABNDE001 − ABNDE004) / ABNDE001 |
+| 2018–2022 | AQ0Z | AQ0ZE001 | AQ0ZE004 | (AQ0ZE001 − AQ0ZE004) / AQ0ZE001 |
+| 2019–2023 | AS1T | AS1TE001 | AS1TE004 | (AS1TE001 − AS1TE004) / AS1TE001 |
+| 2020–2024 | AU24 | AU24E001 | AU24E004 | (AU24E001 − AU24E004) / AU24E001 |
 
 **Note on income currency**: Both the cross-sectional B19013 and NHGIS's time series income table report **nominal current-dollar income** — they are not real. Within each ACS 5-year window the Census Bureau CPI-adjusts responses to the **final year** of the window (so ACS 2022 income is approximately in 2022 dollars, ACS 2014 income in 2014 dollars). Across periods these are incomparable without deflation. The build scripts must deflate all periods to a common base year (2020 dollars) using **CPI-U annual averages** (FRED series CPIAUCSL; `data/raw/CPIAUCSL.csv`). Annual average CPI-U values (key years): 2010 = 218.1, 2012 = 229.6, 2014 = 236.7 (reference), 2022 = 292.6, 2023 = 304.7, 2024 = 313.7, 2020 = 258.9 (base). Deflation factor = 258.9 / [final-year CPI]. NHGIS does not perform this step.
 

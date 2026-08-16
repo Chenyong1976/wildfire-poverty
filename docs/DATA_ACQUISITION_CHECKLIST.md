@@ -1,7 +1,7 @@
 # Data Acquisition Checklist — Phase 0
 
 **Project**: Wildfire-Poverty Analysis (Census Tract Level)  
-**Date**: 2026-08-15 (updated: NHGIS time series standardized; 6-period design)  
+**Date**: 2026-08-15 (updated: 2026-08-15 — nominal time series downloaded; standardized re-download pending)  
 **Status**: In progress
 
 ---
@@ -12,30 +12,48 @@
 
 **Source**: NHGIS (https://data2.nhgis.org/), not IPUMS. IPUMS microdata cannot produce pre-tabulated tract-level estimates; NHGIS provides summary table data with geographic boundary harmonization.
 
-**Why time series standardized**: Tract boundaries changed in 2010 and 2020 decennial censuses. ACS 2010 uses 2000 boundaries; ACS 2012–2014 use 2010 boundaries; ACS 2022–2024 use 2020 boundaries. NHGIS standardized (S) variants interpolate all years to a consistent geography, preventing GEOID mismatches in the panel.
+**Why time series standardized**: Tract boundaries changed in 2010 and 2020 decennial censuses. NHGIS Standardized (S) variants interpolate all years to a consistent 2020 geography via block-level population weights. Under nominal (N) integration, 37% of tracts drop from the balanced panel due to boundary changes — non-random attrition that biases the sample toward stable rural areas.
 
-**See `docs/NHGIS_DOWNLOAD_GUIDE.md` for detailed download steps.**
+**See `docs/NHGIS_DOWNLOAD_GUIDE.md` for detailed download steps and how to verify S vs N in the NHGIS interface.**
+
+#### Extract 1a-i: Time Series Standardized (S) — PENDING RE-DOWNLOAD
+
+> **Current status**: `data/raw/acs_extracts/nhgis_inc_pov_emp/nhgis0012_ts_nominal_tract.csv` was downloaded as **Nominal (N)** and must be replaced. See "ACTION REQUIRED" section in `docs/NHGIS_DOWNLOAD_GUIDE.md`.
 
 | Period | Window | h | NHGIS Status | Checklist |
 |--------|--------|---|--------------|-----------|
-| ACS 2010 | 2006–2010 | −3 | Download via time series standardized extract | ☐ |
-| ACS 2012 | 2008–2012 | −2 | Download via time series standardized extract | ☐ |
-| ACS 2014 | 2010–2014 | −1 (reference) | Download via time series standardized extract (re-download fresh; prior nhgis0008 download quality uncertain) | ☐ |
-| ACS 2022 | 2018–2022 | 0 | Download via time series standardized extract | ☐ |
-| ACS 2023 | 2019–2023 | +1 | Download via time series standardized extract | ☐ |
-| ACS 2024 | 2020–2024 | +2 | Check if included in time series extract; if not, download as source table | ☐ |
+| ACS 2010 | 2006–2010 | −3 | Re-download as Standardized (S) | ☐ |
+| ACS 2012 | 2008–2012 | −2 | Re-download as Standardized (S) | ☐ |
+| ACS 2014 | 2010–2014 | −1 (reference) | Re-download as Standardized (S) | ☐ |
+| ACS 2022 | 2018–2022 | 0 | Re-download as Standardized (S) | ☐ |
+| ACS 2023 | 2019–2023 | +1 | Re-download as Standardized (S) | ☐ |
+| ACS 2024 | 2020–2024 | +2 | Re-download as Standardized (S); check coverage in extract | ☐ |
 
-**Variables (Extract 1 — time series standardized):**
-- Poverty rate: NHGIS poverty time series, Standardized (S), Census Tract
-- Median household income: NHGIS B79 or equivalent, Standardized (S), Census Tract (**nominal; CPI-deflate to 2020$ in build scripts**)
-- Employment rate: NHGIS employment status time series, Standardized (S), Census Tract
-- MOE where available (check if NHGIS time series includes MOE columns)
+**Verify after download**: Open the codebook (`.txt` file in the extract zip). It must read `Geographic integration: Standardized`. If it reads `Nominal`, delete and re-download.
 
-**Variables (Extract 2 — source table, all 6 periods):**
-- Net migration proxy: B07003 (Geographical Mobility in the Past Year), Census Tract, each period separately
-- If B07003 is available as time series standardized, add to Extract 1 instead
+**Save to**: `data/raw/acs_extracts/nhgis_inc_pov_emp_std/` (separate from the nominal file)
 
-**Output**: NHGIS-named subfolders under `data/raw/acs_extracts/`; do not rename.
+**After downloading**: Update `TS_FILE` in `code/01_build/01_acs_nhgis_load.py` to point to the new folder; run the build script; migration merge key will automatically shift from GISJOIN to FIPS11.
+
+**Variables (all via time series standardized extract):**
+- Poverty rate: NHGIS AX7 or equivalent, Standardized (S), Census Tract
+- Median household income: NHGIS B79 or equivalent, Standardized (S), Census Tract (nominal; CPI-U deflation in build script)
+- Employment rate: NHGIS B84 or equivalent, Standardized (S), Census Tract
+- Population: NHGIS AV0, Standardized (S), Census Tract
+- MOE columns included (suffix M); flag but do not drop on 30% count-MOE threshold
+
+#### Extract 1a-ii: Migration Source Tables (B07003) — COMPLETE
+
+| Period | File | Status |
+|--------|------|--------|
+| ACS 2010 | nhgis0013_ds177_20105_tract.csv | ✓ |
+| ACS 2012 | nhgis0013_ds192_20125_tract.csv | ✓ |
+| ACS 2014 | nhgis0013_ds207_20145_tract.csv | ✓ |
+| ACS 2022 | nhgis0013_ds263_20225_tract.csv | ✓ |
+| ACS 2023 | nhgis0013_ds268_20235_tract.csv | ✓ |
+| ACS 2024 | nhgis0013_ds273_20245_tract.csv | ✓ |
+
+Migration files do not need to be re-downloaded — they are source tables on year-specific boundaries, which is correct and expected. Merge onto time series via FIPS11 within each period.
 
 **Responsibility**: Manual download from NHGIS (requires free account login)
 

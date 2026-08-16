@@ -54,7 +54,7 @@ Wildfire frequency and severity have increased dramatically across the US over r
 **Excluded groups**:
 - Tracts with fires 2013–2014 or 2018–2023 (no overlap with g=2016 cohort)
 - Tracts within 100 km smoke buffer (avoid smoke exposure confounding)
-- Tracts with ACS poverty MOE > 30% of point estimate (data quality)
+- Tracts with poverty denominator < 100 (AX7AA + AX7AB < 100; insufficient base for rate estimation)
 - Tracts with population < 500 (ACS reliability threshold, especially rural)
 
 #### Temporal Structure
@@ -158,7 +158,7 @@ Where $h$ indexes relative time:
 | **Parallel trends** | Treated and control tracts follow different trends absent fires | Pre-treatment covariate balance; placebo test (assign fires to pre-2013, test ATT ≈ 0) | Inspect pre-treatment balance; run falsification test |
 | **Temporal confounds** | 2015–2017 fires coincide with region-specific shocks (e.g., local economic downturns, housing bubbles) | State × period FE; census division × period FE | Report results with and without regional controls |
 | **Migration composition** | Tract poverty changes both from income loss AND selective out-migration | Descriptive decomposition: estimate ATT on net migration separately, then estimate conditional effect on poverty | Mediation analysis (§4.2); label as descriptive, not causal |
-| **Measurement error** | ACS tract-level estimates have large MOE, especially rural | Drop tracts with MOE > 30% of poverty point estimate; document by urbanicity | Robustness: vary MOE threshold (20%, 40%) |
+| **Measurement error** | ACS tract-level estimates have large MOE, especially rural | Drop tracts with poverty denominator < 100 (AX7AA + AX7AB); flag tracts where count MOE > 30% of count for sensitivity analysis (note: 90%+ of tracts exceed this threshold — tract-level ACS poverty counts typically have MOE ~50% of count) | Robustness: exclude high-MOE tracts (MOE/count > 0.5) |
 | **Effect heterogeneity** | Fires affect different tracts differently (by poverty, region, fire severity) | Report extensive margin (any fire) and intensive margins separately; subgroup analysis | Sun & Abraham (2021) heterogeneity-robust estimator; subgroup ATTs by poverty quintile, region, WFP hazard |
 
 ---
@@ -210,7 +210,7 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 ### Data Quality Screening
 
 - **ACS 5-year estimates only**: Never use 1-year or 3-year estimates (rural validity constraint)
-- **MOE threshold**: Drop tracts if poverty rate MOE > 30% of point estimate
+- **MOE threshold**: Drop tracts if poverty denominator (AX7AA + AX7AB) < 100; flag but retain tracts where poverty count MOE > 30% of count (tract-level ACS poverty counts typically have MOE ~50% of count — a hard 30% drop threshold would remove ~90% of tracts)
 - **Population minimum**: Drop tracts with population < 500
 - **Documentation**: Report N tracts dropped by each screen, broken down by urbanicity (RUCC)
 - **Expected final sample**: ~40,000–50,000 tracts × 3 periods = ~120,000–150,000 observations
@@ -346,7 +346,7 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 |------|-----------|
 | **Sample size too small for power** | Verify via Monte Carlo using coefficient priors from wildfire-finance county-level results; expect 0.5–1.0 pp CIs on poverty |
 | **Selection bias in fire location** | PS-IPW on WFP 2012 (predetermined) + pre-2013 fire history; balance diagnostics; sensitivity to matching specification |
-| **ACS rural MOE large** | Screen tracts with MOE > 30% (documented); robustness test with MOE > 40% |
+| **ACS rural MOE large** | Drop tracts with poverty denominator < 100; flag high-MOE tracts (MOE/count > 0.5) for robustness exclusion |
 | **No pre-trend test possible** | Placebo falsification: assign fires to pre-2013, test ATT ≈ 0 |
 | **Measurement error in migration** | ACS 5-year residence change is noisy; label decomposition as descriptive, not causal |
 | **Temporal confounds (2015–2017)** | State × period FE; robustness check with census-division × period |

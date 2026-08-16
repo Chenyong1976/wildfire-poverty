@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Core Design
 
-- **Sample**: All lower-48 US census tracts (~70,000); ACS 5-year tract-level estimates 2010, 2012, 2014, 2022, 2023, 2024 (6 periods); after MOE screening (MOE ≤ 30% poverty) and population ≥ 500: ~40,700 tracts (~700 treated + ~40k controls)
+- **Sample**: All lower-48 US census tracts (~70,000); ACS 5-year tract-level estimates 2010, 2012, 2014, 2022, 2023, 2024 (6 periods); after population ≥ 500 and poverty denominator ≥ 100 screens: expected ~70,000 tracts after standardized re-download (~700 treated + ~69k controls)
 - **Treatment**: Single clean cohort—first large fire (MTBS ≥1,000 acres) in 2015–2017
   - Cohort g=2016: First fire 2015, 2016, or 2017
   - g=0: Never-treated (no fires 2013–2023, outside 100 km smoke buffer)
@@ -60,7 +60,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - **Advantage**: Three pre-periods robustly test parallel trends; three post-periods document trajectory (fade vs. persist)
   - Note: Window overlaps (2010/2012/2014 share portions; 2022/2023/2024 share portions) are standard and allow trajectory estimation
   - Do not substitute with 2017 ACS (2013–2017 window contaminated by fires 2015–2017)
-- **MOE screening for rural validity**: Drop tracts if poverty MOE > 30% of point estimate. Report N dropped, broken down by urbanicity. Higher MOE in rural tracts expected; document median MOE by RUCC.
+- **MOE screening for rural validity**: Drop tracts if poverty denominator (AX7AA + AX7AB) < 100. Flag but retain tracts where poverty count MOE > 30% of count (tract-level ACS poverty counts typically have MOE ~50% of count; a hard 30% drop threshold removes ~90% of tracts and systematically excludes rural areas). Report flagged share by RUCC; use as robustness check.
 - **Poverty and income**: Standard Census definitions. Account for top-coding of income (≈$250k+); flag prevalence by cell.
 - **Net migration**: ACS "residence 5 years ago" (available at tract level). Use 5-year window (matches ACS estimate period and fire-effect timescale). Interpret as net migration proxy; cannot separately identify gross in vs. out flows. More noise in rural tracts (sparse populations).
 
