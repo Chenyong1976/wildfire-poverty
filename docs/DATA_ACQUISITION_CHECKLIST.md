@@ -115,7 +115,7 @@ Before PAP registration, document:
 Document:
 - [ ] NHGIS auto-generated column codes for each outcome in the time series standardized extract (read from codebook files shipped with each NHGIS extract)
 - [ ] Whether MOE columns are included in the standardized time series files (they may or may not be)
-- [ ] CPI-U-RS deflator values used to convert income to 2020 dollars (record in data dictionary)
+- [x] CPI-U (CPIAUCSL) downloaded from FRED (`data/raw/CPIAUCSL.csv`); annual averages to be computed in build script
 - [ ] B07003 column codes from the source-table mobility extract
 - [ ] Confirmation that coverage spans all six periods (2010, 2012, 2014, 2022, 2023, 2024)
 
@@ -200,7 +200,7 @@ After all downloads complete:
 - **ACS data source is NHGIS, not IPUMS**: Use time series standardized (S) tables from NHGIS for all ACS outcome variables. IPUMS microdata cannot produce pre-tabulated tract-level summary statistics and should not be used for this project's primary data assembly.
 - **ACS 2024 availability on NHGIS**: Confirm whether NHGIS time series standardized tables include ACS 2024 (2020–2024). If absent, download as a source table — ACS 2024 uses 2020 boundaries (same as standardized target), so the merge is clean.
 - **WHP 2018 is NOT used**: The current design uses only WHP 2012 as the predetermined matching raster. Do not download WHP 2018.
-- **Income CPI deflation**: Median household income in NHGIS is nominal. CPI-deflate to 2020 dollars using CPI-U-RS in `code/01_build/`. Record deflator values in `docs/DATA_DICTIONARY.md`.
+- **Income CPI deflation**: Median household income in NHGIS is nominal. Deflate to 2020 dollars using **CPI-U annual averages** (FRED CPIAUCSL; `data/raw/CPIAUCSL.csv`) in `code/01_build/`. Use the final year of each ACS window as the deflation year (e.g., 2022 for ACS 2018–2022). Record deflator values in `docs/DATA_DICTIONARY.md`.
 - **Symlink vs. copy**: For MTBS and WHP 2012 (already in wildfire-finance), create symlinks rather than copies to avoid duplication:
   ```bash
   ln -s ../../wildfire-finance/data/raw/mtbs_perims data/raw/mtbs_perimeters

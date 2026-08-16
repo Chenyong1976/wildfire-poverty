@@ -30,8 +30,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Primary outcomes** (in priority order):
   1. Poverty rate (% population below federal poverty line)
   2. Median household income (nominal, 2020 dollars)
-  3. Net-migration rate (% moved in – % moved out, past 5 years) **[descriptive decomposition]**
-  4. Employment rate (% civilian labor force employed)
+  3. Net-migration rate proxy: in-migration rate = (total − same house 1 yr ago) / total, from B07003 **[descriptive decomposition]**
+  4. Employment rate (B84AD / B84AC: civilian employed / civilian labor force 16+)
 - **Control group**: Never-treated (no fires 2013–2023, outside 100 km smoke buffer), balanced on raster-based matching covariates
 - **Matching strategy**: Propensity-score inverse-probability weights (PS-IPW) on:
   - **Raster-based WFP 2012 summaries** (270m resolution, predetermined): Mean WFP percentile, % area per hazard quintile, distance to high-hazard pixel

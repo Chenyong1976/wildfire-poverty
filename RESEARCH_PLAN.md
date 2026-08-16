@@ -179,9 +179,9 @@ Where $h$ indexes relative time:
 | Outcome | Source | Definition | Notes |
 |---------|--------|-----------|-------|
 | **Poverty rate** (primary) | NHGIS time series standardized | % population below federal poverty line | 5-year estimates essential for rural reliability |
-| **Median HH income** | NHGIS time series standardized | Median household income (nominal; CPI-deflate to 2020$ in build scripts) | Secondary outcome |
-| **Employment rate** | NHGIS time series standardized | % of civilian labor force employed | Captures labor market adjustment |
-| **Net-migration rate** (mediator) | NHGIS B07003 source table (all 6 periods) | In-migration rate proxy (% moved in past year); see note on gross vs. net | Descriptive decomposition mechanism |
+| **Median HH income** | NHGIS time series standardized | Median household income (nominal; deflate to 2020$ using CPI-U annual averages (FRED CPIAUCSL) in build scripts; deflate by final year of each ACS window) | Secondary outcome |
+| **Employment rate** | NHGIS time series standardized | B84AD / B84AC: civilian employed / civilian labor force (16+); excludes Armed Forces and persons not in labor force | Captures labor market adjustment |
+| **Net-migration rate** (mediator) | NHGIS B07003 source table (all 6 periods) | In-migration rate proxy: (total − same house 1 yr ago) / total; measures arrivals only (out-migration not observable from ACS) | Descriptive decomposition mechanism |
 
 All outcomes available at **tract level only for 5-year estimates**. No 1-year or 3-year estimates used (rural data quality constraint). NHGIS time series standardized (S) variant is required to handle tract boundary changes across the 2010–2024 study window.
 
@@ -198,13 +198,14 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 
 | Variable | Source | Format | Acquisition Status |
 |----------|--------|--------|-------------------|
-| Poverty, income, employment | NHGIS time series standardized (S), tract | CSV (NHGIS extract) | ⏳ Pending NHGIS download (see `docs/NHGIS_DOWNLOAD_GUIDE.md`) |
-| Net migration proxy | NHGIS B07003 source table, tract, all 6 periods | CSV (NHGIS extract) | ⏳ Pending NHGIS download |
+| Poverty, income, employment | NHGIS time series standardized (S), tract | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_inc_pov_emp/nhgis0012_ts_nominal_tract.csv` |
+| Net migration proxy | NHGIS B07003 source table, tract, all 6 periods | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_mig/nhgis0013_ds*_tract.csv` (6 files) |
 | Fire perimeters & treatment assignment | MTBS (USGS) | Shapefile | ✓ Linked from wildfire-finance |
 | WFP 2012 (primary matching) | USFS LANDFIRE | 270m raster, EPSG:5070 | ✓ Linked from wildfire-finance |
 | Pre-2013 fire history | MTBS 1984–2012 | Shapefile | ✓ Linked from wildfire-finance |
 | RUCC 2013 | USDA ERS | County-level codes | ⏳ To parse from wildfire-finance |
-| Tract shapefiles (for fire-tract spatial join) | Census TIGER 2020 | Shapefile | ⏳ To download |
+| Tract shapefiles (for fire-tract spatial join) | Census TIGER 2014 (NHGIS) | Shapefile | ✓ `data/raw/acs_extracts/nhgis2014Tiger/nhgis0012_shapefile_tl2014_us_tract_2014.zip` |
+| CPI-U (income deflator) | FRED series CPIAUCSL (BLS); monthly; base 1982–84=100 | CSV | ✓ `data/raw/CPIAUCSL.csv`; retrieved 2026-08-15 from https://fred.stlouisfed.org/series/CPIAUCSL; annual averages computed in build script |
 
 ### Data Quality Screening
 
