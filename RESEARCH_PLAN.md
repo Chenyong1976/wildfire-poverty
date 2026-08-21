@@ -97,32 +97,56 @@ ACS 2010 is on 2000-vintage boundaries, which differ from the 2010-vintage used 
 
 #### Control Group Construction
 
-**Propensity-score inverse-probability weighting (PS-IPW)**:
+**Matching strategy overview**: Two complementary matching approaches are implemented. The primary approach is propensity-score inverse-probability weighting (PS-IPW), using a reweighted control group in the main TWFE estimator. As an alternative, coarsened exact matching (CEM) on WFP quintiles is applied to a CEM-matched subsample with OLS, providing a robustness check under different parametric assumptions.
+
+**A. Propensity-score inverse-probability weighting (PS-IPW)**:
 
 1. **Propensity score model** (logistic, matching on pre-treatment covariates):
    $$\Pr(\text{Treated} | X) = \Lambda(\alpha + X \beta)$$
    
    Where $X$ includes:
-   - **WFP 2012 raster summaries** (270m resolution, predetermined):
-     - Mean WFP 2012 percentile (0–100) across pixels in tract
-     - % tract area in each WFP hazard quintile (5 indicators)
-     - Distance from tract centroid to nearest pixel WFP > 75th percentile
-   - **Pre-2013 fire history**: Any fire 1984–2012; log total acres burned 1984–2012
-   - **Pre-treatment covariates** (2012 ACS, tract-level):
-     - Poverty rate, median HH income, population density
-     - % age 65+, % race/ethnicity groups (White, Black, Hispanic, Asian)
-   - **RUCC 2013**: County-level rural-urban classification (merged to tracts)
+   
+   **WFP 2014 raster summaries** (primary matching covariate; 270m resolution, ESRI Grid, EPSG:5070; predetermined before the 2015 fire season). Three tract-level summaries capture distinct facets of wildfire hazard — all three are included in the propensity score model and reported in the covariate balance table:
+   - *Mean WFP 2014 percentile* (0–100 across pixels intersecting the tract): the primary gradient along which treated and control tracts differ. The observed normalized difference on this variable is **0.43**, exceeding the Imbens (2015) threshold of 0.25 for reliable regression-adjustment-based balance, motivating both caliper trimming (§A.3 below) and the CEM robustness check (§B below).
+   - *% tract area per WFP hazard quintile* (Q1–Q5; five indicators summing to 100%): accounts for within-tract heterogeneity in hazard. Two tracts with identical mean WFP can have very different risk profiles if one has a bimodal distribution (low- and high-hazard zones) while the other is uniformly moderate. Quintile shares capture this dispersion independently of the mean.
+   - *Distance from tract centroid to nearest pixel with WFP > 75th percentile* (km): captures proximity to high-hazard zones outside the tract boundary. Fire is spatially continuous — tracts adjacent to high-hazard pixels face spillover risk even if their own mean WFP is moderate.
+   
+   **WFP 2012 raster summaries** (robustness check only): Identical tract-level summaries computed from the 2012 WFP vintage are included in sensitivity specifications to assess whether ATT estimates and balance quality are sensitive to the choice of hazard raster vintage. WFP 2012 is further predated from treatment but may capture longer-run structural hazard patterns.
+   
+   **Pre-2013 fire history**: Any fire 1984–2012 (binary); log total acres burned 1984–2012 (continuous, log(acres + 1)).
+   
+   **Pre-treatment socioeconomic covariates** (2012 ACS, tract-level):
+   - Poverty rate, median household income, population density
+   - % age 65+, % race/ethnicity groups (White, Black, Hispanic, Asian)
+   
+   **RUCC 2013**: County-level rural-urban continuum code (1 = large metro core to 9 = most remote rural), merged to tracts via county FIPS. RUCC is a key matching covariate because wildfire occurrence is strongly correlated with rurality, and rural areas differ systematically in economic structure, labor market depth, and population mobility — all of which are relevant to the outcome mechanisms of interest.
 
 2. **Inverse-probability weights**:
    - Treated tracts: $w_i = 1$
    - Control tracts: $w_i = \hat{e}_i / (1 - \hat{e}_i)$ where $\hat{e}_i$ = estimated propensity score
    - Trim at 99th percentile to stabilize variance
 
-3. **Balance diagnostics**:
-   - Standardized mean differences (SMD) before and after weighting
+3. **Caliper trimming** (to address the high normalized difference in mean WFP 2014):
+   The normalized difference of 0.43 between treated and never-treated tracts on mean WFP 2014 implies that propensity-score reweighting may extrapolate substantially outside the common support region. To restrict estimation to comparable tracts, we apply a propensity-score caliper following Cochran & Rubin (1973):
+   - Estimate propensity score $\hat{e}_i$ for all tracts via the logistic model above
+   - Drop control tracts with $\hat{e}_i$ below $\min(\hat{e}_{\text{treated}}) - c$ or above $\max(\hat{e}_{\text{treated}}) + c$, where $c = 0.20 \times \text{SD}(\hat{e}_{\text{treated}})$ (baseline caliper)
+   - Report the share of control tracts trimmed and the effective sample size (ESS) before and after caliper trimming
+   - Caliper sensitivity: vary $c \in \{0.10, 0.20, 0.25\}$ standard deviations; report ATT under each
+
+4. **Balance diagnostics** (reported for all matching variables):
+   - Standardized mean differences (SMD) before and after IPW reweighting, for mean WFP 2014 percentile, all five quintile shares (Q1–Q5), distance to high-hazard pixel, pre-2013 fire history, 2012 ACS socioeconomic covariates, and RUCC
    - Target: SMD < 0.10 for all covariates post-weighting
-   - Report effective sample size (ESS) of reweighted controls
+   - Report ESS of reweighted control group before and after caliper trimming
    - Plot propensity score distributions (treated vs. control, pre/post reweighting)
+
+**B. Coarsened exact matching (CEM) on WFP quintiles**:
+
+As a non-parametric alternative that makes no distributional assumptions about the propensity score:
+1. Coarsen WFP 2014 into quintile bins (Q1–Q5) based on the national distribution of mean WFP 2014 percentile across all tracts
+2. Optionally add a second coarsening dimension: pre-2013 fire history (binary: any fire 1984–2012), yielding a 10-cell matching grid (5 quintile bins × 2 fire-history cells)
+3. Exactly match each treated tract to all control tracts in the same coarsened cell; drop unmatched cells
+4. Run OLS with tract and period fixed effects on the CEM-matched sample (no IPW weights)
+5. Report CEM-OLS ATT alongside IPW-TWFE in the main robustness table; large divergence flags propensity-score model misspecification or failure of common support
 
 #### Estimating Equations
 
@@ -161,11 +185,17 @@ Where $h$ indexes relative time:
 
 **Robustness variants**:
 
-1. **Regression adjustment** (include covariates as regressors instead of matching):
+1. **Unweighted TWFE** (no matching weights): Standard two-way fixed effects without IPW weights. Comparison to IPW-TWFE quantifies the selection-on-observables bias that matching corrects. Large divergence (e.g., opposite sign or substantially larger magnitude) suggests high residual confounding in the unweighted estimate.
+
+2. **IPW-TWFE** (primary): Reweighted by inverse-probability weights from PS-IPW model with caliper trimming. Main specification reported throughout.
+
+3. **CEM-OLS**: OLS on CEM-matched sample with tract and period FE; no IPW weights. Non-parametric robustness to propensity-score model form.
+
+4. **Regression adjustment** (include covariates as regressors instead of matching):
    $$\text{Outcome}_{i,t} = \alpha_i + \lambda_t + \beta \cdot \text{Treated}_i \cdot \text{Post}_t + X_{i,2012} \gamma + \text{State}_i \cdot \lambda_t + \epsilon_{i,t}$$
    (Add state × period fixed effects to absorb region-specific time trends)
 
-2. **Intensive margin** (dose-response by burned share):
+5. **Intensive margin** (dose-response by burned share):
    $$\text{Outcome}_{i,t} = \alpha_i + \lambda_t + \beta \cdot \text{BurnShare}_i \cdot \text{Post}_t + X_{i,2012} \gamma + \epsilon_{i,t}$$
    Where $\text{BurnShare}_i$ = % of tract area burned in 2015–2017 fires (continuous [0, 100])
 
@@ -173,7 +203,7 @@ Where $h$ indexes relative time:
 
 | Threat | Mechanism | Mitigation | Robustness |
 |--------|-----------|-----------|-----------|
-| **Selection bias** | High-hazard/poor tracts experience fires endogenously | PS-IPW matching on WFP 2012 raster (predetermined before 2013) + pre-2013 fire history | Report SMD < 0.10; vary matching specifications (CEM on WFP quintiles); include pre-treatment covariates in regression |
+| **Selection bias** | High-hazard/poor tracts experience fires endogenously | PS-IPW matching on WFP 2014 raster (predetermined before 2015 fire season) + caliper trimming (normalized diff = 0.43) + pre-2013 fire history + RUCC | SMD < 0.10 all covariates; CEM on WFP quintiles as alternative estimator; WFP 2012 vintage as robustness |
 | **Smoke spillover** | Control tracts exposed to smoke from treated fires | 100 km buffer exclusion from controls | Vary 50 km, 150 km; check if ATT stable |
 | **Parallel trends** | Treated and control tracts follow different trends absent fires | Pre-treatment covariate balance; placebo test (assign fires to pre-2013, test ATT ≈ 0) | Inspect pre-treatment balance; run falsification test |
 | **Temporal confounds** | 2015–2017 fires coincide with region-specific shocks (e.g., local economic downturns, housing bubbles) | State × period FE; census division × period FE | Report results with and without regional controls |
@@ -240,7 +270,8 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 | Poverty, income, employment | NHGIS time series **nominal (N)**, tract — only ACS option (standardized S not available for ACS at tract level) | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_inc_pov_emp/nhgis0012_ts_nominal_tract.csv` |
 | Net migration proxy | NHGIS B07003 source table, tract, all 6 periods | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_mig/nhgis0013_ds*_tract.csv` (6 files) |
 | Fire perimeters & treatment assignment | MTBS (USGS) | Shapefile | ✓ Linked from wildfire-finance |
-| WFP 2012 (primary matching) | USFS LANDFIRE | 270m raster, EPSG:5070 | ✓ Linked from wildfire-finance |
+| WFP 2014 (**primary matching**) | USFS LANDFIRE | 270m raster, EPSG:5070; predetermined before 2015 fire season | ⏳ Download from USFS LANDFIRE; compute tract summaries (mean percentile, quintile shares, distance to high-hazard pixel) |
+| WFP 2012 (robustness check) | USFS LANDFIRE | 270m raster, EPSG:5070 | ✓ Linked from wildfire-finance; compute same three tract-level summaries for sensitivity specs |
 | Pre-2013 fire history | MTBS 1984–2012 | Shapefile | ✓ Linked from wildfire-finance |
 | RUCC 2013 | USDA ERS | County-level codes | ⏳ To parse from wildfire-finance |
 | Tract shapefiles (for fire-tract spatial join) | Census TIGER 2014 (NHGIS) | Shapefile | ✓ `data/raw/acs_extracts/nhgis2014Tiger/nhgis0012_shapefile_tl2014_us_tract_2014.zip` |
@@ -265,7 +296,8 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 **Deliverables**:
 - `acs_2012_2022_2023_tract_clean.parquet`: ACS outcomes (poverty, income, employment, migration) for 3 periods, ~70k tracts, post-MOE screening
 - `fire_treatment_assignment_tract.parquet`: Treatment cohort (g=2016 or g=0), extensive & intensive margins, ~70k tracts
-- `whp_2012_tract_raster_summaries.parquet`: Tract-level raster summaries (mean WFP, quintile %, distance to high-hazard pixel)
+- `whp_2014_tract_raster_summaries.parquet`: Tract-level WFP 2014 raster summaries (mean percentile, quintile shares Q1–Q5, distance to high-hazard pixel)
+- `whp_2012_tract_raster_summaries.parquet`: Same summaries computed from WFP 2012 raster (robustness check)
 - `matching_covariates_2012_tract.parquet`: Pre-treatment covariates (2012 ACS demographics, fire history, RUCC)
 - `smoke_buffer_100km_tract.parquet`: Smoke exclusion flags
 - `analysis_sample_final_tract.parquet`: Unbalanced panel after all screens (~40k–50k tracts × 3 periods)
@@ -369,8 +401,8 @@ Estimate TWFE event study on both. Owner-occupancy decline + vacancy increase �
 
 ### Table & Figure Checklist
 
-- **Table 1a**: Pre-treatment balance (pre-IPW): treated vs. control
-- **Table 1b**: Post-treatment balance (post-IPW): SMD, ESS
+- **Table 1a**: Pre-treatment balance (pre-IPW): treated vs. control means and SDs for all matching variables: mean WFP 2014 percentile, WFP 2014 quintile shares (Q1–Q5), distance to nearest high-hazard pixel, pre-2013 fire history, 2012 ACS poverty rate/income/demographics, and RUCC
+- **Table 1b**: Post-treatment balance (post-IPW with caliper): SMD for all matching variables listed above; ESS before and after caliper trimming; density plots of propensity-score distributions
 - **Table 2**: Threats to identification (summary)
 - **Table 3**: Main ATT estimates (all 4 outcomes, point + CI)
 - **Table 4**: In-migration mechanism decomposition — ATT on in_migration_rate, log_pop, log_mover_count side by side; joint interpretation of numerator vs. denominator
@@ -411,7 +443,7 @@ Estimate TWFE event study on both. Owner-occupancy decline + vacancy increase �
 - Data source: NHGIS time series standardized (S) tables at census tract level
 - Primary outcome: Poverty rate
 - Secondary outcomes: Income (2020$), employment, migration proxy
-- Main estimand: ATT via event-study DiD with PS-IPW matching on WFP 2012 raster
+- Main estimand: ATT via event-study DiD with PS-IPW matching on WFP 2014 raster (primary) + caliper trimming; CEM on WFP quintiles as robustness; WFP 2012 as sensitivity check
 - Threats and mitigations
 - Robustness tests (organized by threat)
 

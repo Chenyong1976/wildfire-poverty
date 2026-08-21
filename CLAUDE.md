@@ -33,10 +33,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   3. Net-migration rate proxy: in-migration rate = (total − same house 1 yr ago) / total, from B07003 **[descriptive decomposition]**
   4. Employment rate (B84AD / B84AC: civilian employed / civilian labor force 16+)
 - **Control group**: Never-treated (no fires 2013–2023, outside 100 km smoke buffer), balanced on raster-based matching covariates
-- **Matching strategy**: Propensity-score inverse-probability weights (PS-IPW) on:
-  - **Raster-based WFP 2012 summaries** (270m resolution, predetermined): Mean WFP percentile, % area per hazard quintile, distance to high-hazard pixel
-  - Pre-2013 fire history (any large fire 1984–2012, log acres burned)
-  - Pre-treatment baseline covariates (2012 ACS tract-level: poverty, income, demographics; county-level RUCC; population)
+- **Matching strategy**: Two complementary approaches:
+  1. **PS-IPW** (primary): Logistic propensity score on WFP 2014 raster summaries (mean percentile, quintile shares Q1–Q5, distance to high-hazard pixel) + pre-2013 fire history + 2012 ACS socioeconomic covariates + RUCC 2013. Caliper trimming at 0.20 SDs of propensity score to address normalized difference of 0.43 on mean WFP 2014.
+  2. **CEM-OLS** (robustness): Coarsened exact matching on WFP 2014 quintile bins (optionally × pre-2013 fire history), then OLS on matched sample with tract and period FE.
 - **Data sources**: ACS (IPUMS, tract-level), MTBS fire perimeters, USFS WFP 2012 (270m raster; primary matching), BEA (annual, merged to tract via county)
 
 ---
@@ -66,14 +65,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Fire Data (Reuse from wildfire-finance)
 - **MTBS** (Monitoring Trends in Burn Severity): 1984–2022 fires, nationwide. Minimum threshold 1,000 acres nationwide (conservative for this tract-level study; robustness test at 500 acres).
-- **WFP 2012** (primary matching variable): USFS Wildfire Potential, finalized before 2013 fire season. **Predetermined** for fires from 2013 onward. **Native 270m resolution (ESRI Grid, EPSG:5070)**. **CRITICAL: Do NOT aggregate to county/tract boundaries. Instead, extract 270m pixels and compute tract-level summaries**:
-  - Mean WFP 2012 percentile (0–100) across pixels intersecting tract
-  - % tract area in each WFP hazard quintile (0–20, 20–40, 40–60, 60–80, 80–100)
-  - Distance from tract centroid to nearest pixel with WFP > 75th percentile
-  - These tract-level summaries serve as matching covariates in PS-IPW model.
+- **WFP 2014** (**primary matching variable**): USFS Wildfire Potential, finalized before the 2015 fire season. **Predetermined** for the 2015–2017 fire cohort. **Native 270m resolution (ESRI Grid, EPSG:5070)**. **CRITICAL: Do NOT aggregate to county/tract boundaries. Instead, extract 270m pixels and compute tract-level summaries**:
+  - Mean WFP 2014 percentile (0–100) across pixels intersecting tract — **all three summaries below are included in the PS-IPW model and reported in the covariate balance table**
+  - % tract area in each WFP hazard quintile (Q1–Q5; five indicators)
+  - Distance from tract centroid to nearest pixel with WFP > 75th percentile (km)
+  - The observed normalized difference on mean WFP 2014 between treated and controls is **0.43** (above the Imbens 2015 threshold of 0.25); apply propensity-score caliper of 0.20 SDs.
   - Use `rasterio`, `geopandas` for spatial operations.
-  - Obtain from wildfire-finance: `wildfire-finance/data/raw/WHP/Data/wfp_2012_continuous/`.
-- **WHP 2014** (robustness only): NOT predetermined for 2013–2014 fires. Use for sensitivity checks only.
+  - Download from USFS LANDFIRE (WFP 2014 vintage).
+- **WFP 2012** (robustness check only): Same three tract-level summaries computed from the 2012 vintage raster. Linked from wildfire-finance: `wildfire-finance/data/raw/WHP/Data/wfp_2012_continuous/`. Used in sensitivity specifications to assess vintage sensitivity of balance and ATT estimates.
 - **Smoke spillover exclusion**: Baseline 100 km buffer around MTBS fire perimeters. Exclude tracts within buffer from control group. Vary 50 km, 150 km in robustness. Rationale: proxy for smoke transport; tract-level buffering more precise than county-level.
 - **Fire-tract intersection**: Spatial join MTBS perimeters with tract boundaries; compute % tract area within fire polygon (supports dose-response analysis).
 - **Fire perimeters**: Reuse MTBS data from wildfire-finance: `wildfire-finance/data/raw/mtbs_perims/`. If not available, download from USGS MTBS website.
