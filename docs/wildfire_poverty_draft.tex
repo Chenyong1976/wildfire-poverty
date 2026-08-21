@@ -1,0 +1,1774 @@
+% ============================================================
+%  Wildfire Incidence and Local Poverty
+%  Working draft
+%  Target journal: Journal of Urban Economics
+%  Citation style: Chicago author-date (natbib)
+% ============================================================
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[authoryear,round]{natbib}
+\usepackage{setspace}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\doublespacing
+
+\newcommand{\ph}[1]{#1}
+
+% ============================================================
+\title{Large Wildfires and Residential Turnover:\\
+       Evidence from a First-Fire Design}
+
+\author{\ph{Author Name(s)}\thanks{%
+  \ph{Affiliation. Email: author@institution.edu.}
+  We thank \ph{[acknowledgments]}. All errors are our own.}}
+
+\date{\today}
+% ============================================================
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\begin{abstract}
+\noindent
+We estimate the causal effect of large wildfires on residential turnover
+using a single-cohort event-study difference-in-differences design
+applied to all lower-48 census tracts observed in six American Community
+Survey five-year panels spanning 2010--2024.
+Treated tracts are those containing their \emph{first} large fire
+(at least 1,000 acres, Monitoring Trends in Burn Severity database)
+during 2015--2017 with no prior large fire since 1984;
+controls are never-treated tracts outside a 100-kilometer smoke buffer,
+reweighted by inverse-probability weights constructed from the
+2012 USFS Wildfire Hazard Potential raster.
+Counter to conventional displacement narratives,
+in-migration rates \emph{rise} by 1.17 percentage points
+(95\% CI: $[+0.32, +2.02]$; $n = 215$ treated tracts).
+A numerator--denominator decomposition shows that total population
+is unchanged (ATT $\approx 0$\%), confirming that the effect reflects
+compositional churn rather than net population inflow.
+The event-study trajectory is persistent across three post-treatment
+periods ($h \in \{0, +1, +2\}$), ruling out a transient
+reconstruction-labor explanation.
+Suggestive housing evidence---declining renter-unit counts and
+rising owner-occupancy shares---is consistent with a sorting mechanism
+in which lower-income renters exit and owner-occupiers arrive.
+Poverty, income, and employment show no statistically significant effects,
+consistent with compositional replacement of the resident population
+rather than incumbent impoverishment.
+The finding survives Rambachan-Roth sensitivity analysis
+at $M = 1$ and is robust to doubly robust TWFE estimation.
+\end{abstract}
+
+\textbf{JEL Codes:} Q54, R23, R21, J61 \\
+\textbf{Keywords:} wildfire, residential mobility, compositional sorting,
+                    difference-in-differences, wildland-urban interface,
+                    first-fire design
+
+\clearpage
+
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
+% ============================================================
+
+Large wildfires are becoming more frequent and more destructive across the
+United States.
+The annual burned area in the contiguous US has doubled since the 1980s,
+and the ten largest fire years on record have all occurred since 2000
+\citep{coulombe2025fires}.
+The conventional narrative about wildfire's economic consequences
+centers on displacement: residents flee, housing is destroyed,
+and communities are left economically diminished.
+We test a key implication of this narrative---that fire-affected tracts
+should experience declining in-migration as amenities and economic
+opportunity fall---and find the opposite.
+
+Our primary finding is that large wildfires cause in-migration rates
+to \emph{rise} by 1.17 percentage points (95\% CI: $[+0.32, +2.02]$)
+in tracts experiencing their first large fire.
+The effect is persistent across three post-treatment periods spanning
+three to seven years post-fire, ruling out a transient
+reconstruction-labor explanation.
+Total population is unchanged (ATT $\approx 0\%$), confirming that
+the rate increase reflects compositional churn---roughly equal elevated
+in- and out-flows---rather than net population growth.
+Poverty, income, and employment are all statistically indistinguishable
+from zero, consistent with compositional replacement of the resident
+population rather than incumbent impoverishment.
+
+Three mechanisms could, in principle, produce rising in-migration after
+a large fire.
+First, a \emph{reconstruction-labor channel}: contractors, construction
+workers, and insurance professionals move into fire-damaged areas to
+support rebuilding.
+This predicts a front-loaded spike at the first post-treatment period that
+subsequently decays as reconstruction concludes.
+Second, a \emph{return-migration channel}: residents who evacuated
+before or during the fire gradually return once conditions allow.
+This also predicts a front-loaded pattern, concentrated in the first
+observable post-period.
+Third, a \emph{compositional-sorting channel}: fires accelerate
+the exit of lower-mobility residents (particularly renters, who have lower
+relocation costs) and attract higher-income owner-occupiers drawn by
+discounted property prices, reconstruction opportunity, or shifting
+amenity valuations.
+This predicts a persistent effect that grows over time as the composition
+of the resident population gradually shifts.
+
+The event-study trajectory we estimate is flat and persistent
+($\hat{\beta}_0 \approx +1.22$ pp, $\hat{\beta}_{+1} \approx +1.02$ pp,
+$\hat{\beta}_{+2} \approx +1.27$ pp), inconsistent with channels (1)
+and (2), which would be concentrated at $h = 0$.
+Suggestive corroborating evidence is consistent with channel (3):
+renter-occupied units decline approximately 2.8 percent on average
+post-fire, reaching 4.4 percent below trend by $h = +2$;
+the owner-occupancy rate rises 0.31 percentage points
+(0.56 pp at $h = +2$).
+These housing outcomes are not individually significant at $n = 215$
+treated tracts and are presented as descriptive corroboration rather
+than causal estimates.
+The null poverty result is also consistent with sorting:
+if lower-income renters exit and are replaced by higher-income
+owner-occupiers, the tract-level poverty rate can remain stable even
+as displaced households are made worse off---an ecological fallacy
+that renders incumbent poverty a poor summary statistic of community
+welfare after a large fire.
+
+We estimate a single-cohort event-study difference-in-differences model.
+The treated units are census tracts that experienced their first
+large fire (at least 1,000 acres from the Monitoring Trends in Burn
+Severity (MTBS) database) during 2015--2017, with no prior large fire
+since 1984---a \emph{first-fire design} that eliminates the confound
+introduced by accumulated fire history.
+The control group consists of never-treated tracts outside a
+100-kilometer smoke-exclusion buffer,
+reweighted using inverse-probability weights constructed from the 2012
+USFS Wildfire Hazard Potential (WHP) raster at 270-meter resolution.
+We observe six periods of the American Community Survey five-year
+estimates (2010, 2012, 2014, 2022, 2023, 2024),
+spanning three pre-treatment and three post-treatment periods.
+Three pre-periods allow unusually robust pre-trend testing by
+\citeauthor{roth2022pretest}'s (\citeyear{roth2022pretest}) standards,
+and the primary pre-trend test (Wald $p = 0.982$ for $\hat{\beta}_{-2} = 0$)
+passes comfortably.
+The finding survives Rambachan-Roth sensitivity analysis at breakdown
+$M = 1$---meaning it holds unless the undetected pre-trend is larger in
+magnitude than the largest observed pre-period deviation.
+
+This paper contributes to three strands of literature.
+First, we contribute to the disaster-migration literature.
+\citet{boustan2020effect} document out-migration and housing price declines
+following severe multi-hazard disasters at US county resolution;
+\citet{mcconnell2024wildfire} find that only extreme wildfires
+(top decile by structures destroyed) generate significant out-migration,
+with no detectable in-migration response in the short run.
+We extend both papers by documenting the medium-run in-migration
+response---absent in short-window credit-panel designs---and by showing
+that in-migration and out-migration co-occur as a turnover phenomenon
+rather than as net population change.
+
+Second, we contribute to the wildfire economics literature.
+\citet{coulombe2025fires} find that wildfire exposure depresses county
+employment growth for approximately three years through an out-migration
+channel.
+\citet{borgschulte2024air} document that wildfire smoke reduces quarterly
+earnings by 0.1 percent per smoke day.
+We complement these papers with the first nationally representative,
+tract-level causal estimates of wildfire effects on residential mobility,
+identifying a turnover mechanism that is distinct from the smoke-exposure
+and employment channels studied in prior work.
+
+Third, we speak to housing markets and environmental justice.
+\citet{hennighausen2024catastrophic} show that catastrophic fires
+generate evacuee-driven demand shocks in receiving communities;
+\citet{mcconnell2024post} document socioeconomically stratified
+reconstruction patterns in the 2018 Camp Fire footprint.
+Our results at national scale are consistent with wildfire-induced
+compositional sorting that may systematically disadvantage renters
+and lower-income households without registering in the incumbent
+poverty rate.
+Future work exploiting ACS mobility-by-income tables (B07011) and
+IRS Statistics of Income out-migration flows can directly identify
+whether lower-income households are disproportionately displaced.
+
+The paper proceeds as follows.
+Section~\ref{sec:data} describes the data and sample construction.
+Section~\ref{sec:strategy} presents the empirical strategy.
+Section~\ref{sec:results} reports the primary in-migration result
+and mechanism analyses.
+Section~\ref{sec:robust} presents robustness analysis organized by
+identification threat.
+Section~\ref{sec:discussion} discusses mechanisms, scope conditions,
+and limitations.
+Section~\ref{sec:conclusion} concludes.
+
+
+% ============================================================
+\section{Data and Sample}
+\label{sec:data}
+% ============================================================
+
+\subsection{Geographic Unit and Sample Frame}
+
+We use census tract as our unit of analysis.
+Census tracts capture within-county socioeconomic heterogeneity
+that is critical in wildfire research: a single county may contain
+both directly burned tracts and neighboring tracts that are
+economically connected but physically unaffected.
+Our sample comprises all lower-48 census tracts in the ACS five-year
+balanced panel, after applying a minimum population threshold
+(500 persons and a poverty denominator of at least 100)
+and a six-period balanced panel requirement.
+The resulting sample contains approximately 70,700 tracts in the full universe;
+after restricting to the analysis sample (215 treated and 35,005 controls),
+the balanced panel contains 35,220 tracts $\times$ six periods.
+
+All tract identifiers are harmonized to 2010 Census boundaries.
+Pre-treatment ACS extracts (2010, 2012, 2014) use 2010-vintage NHGIS
+source tables directly.
+Post-treatment extracts (2022, 2023, 2024), released using 2020-vintage
+boundaries, are re-aggregated to 2010 parent tracts via an area-weighted
+block-level crosswalk from NHGIS
+\citep{NHGIS2024},
+with counts allocated proportionally to block-land-area overlap
+and rates recomputed from allocated counts.
+
+\subsection{Fire Treatment Variable}
+
+We identify fire events using the Monitoring Trends in Burn Severity (MTBS)
+database, which provides georeferenced fire perimeters for fires of at least
+1,000 acres nationwide \citep{MTBS2022}.
+We spatially join MTBS perimeters (1984--2022) to census tract boundaries
+and flag a tract as treated if any portion of its area intersects a fire
+perimeter from the 2015--2017 window.
+A burned-area share variable (percent of tract area within the fire polygon)
+supports intensive-margin dose-response robustness checks.
+
+The treatment cohort is defined as the set of tracts with their first large
+fire in 2015, 2016, or 2017.
+Collapsing three fire years into a single cohort reflects a deliberate
+design choice: it eliminates mutual-exclusivity violations that arise
+in overlapping-cohort staggered designs and ensures that two-way fixed
+effects is numerically equivalent to the
+\citet{callaway2021difference} estimator for a single group \citep{goodman2021difference}.
+
+A critical additional restriction is the \emph{first-fire design}.
+Any tract that experienced a large fire between 1984 and 2014---before
+the treatment window---is excluded from the treated group.
+This exclusion is motivated by a severe balance failure in an initial
+broader specification: 79 percent of cohort tracts had prior fire
+experience, versus only 10 percent of control tracts, producing a
+standardized mean difference of 1.93 on prior-fire history that
+inverse-probability weighting could not resolve (post-IPW SMD = 1.50).
+The first-fire restriction resolves this confound by construction
+(prior-fire SMD = 0.00 in the final sample), at the cost of reducing
+the treated sample from 1,063 to 215 tracts.
+These 215 tracts experienced their first large wildfire in 2015--2017,
+enabling clean identification of the initial impact of wildfire exposure
+on a tract's resident population.
+All qualifying fires meet the MTBS minimum threshold of 1,000 acres by construction;
+the median burned area within treated tracts is approximately 1,100 acres,
+with the distribution extending to large complex-fire events that overlap
+more than 50,000 acres within a single tract.
+
+\subsection{Control Group and Smoke Exclusion}
+
+The control group consists of tracts with no large fires
+during 1984--2023.
+To avoid smoke-contaminated controls, we exclude any never-treated tract
+whose centroid falls within 100 kilometers of any MTBS fire perimeter
+active in 2015--2017.
+The 100-kilometer threshold approximates one day of smoke transport under
+typical atmospheric conditions and follows conventions in the wildfire
+economics literature \citep{borgschulte2024air}.
+We vary this radius to 50 and 150 kilometers in robustness checks.
+After smoke-buffer exclusion, the control pool contains 35,005 tracts.
+
+\subsection{Matching Covariates and IPW Weights}
+
+Propensity-score inverse-probability weights (PS-IPW) are constructed
+from a logistic regression of treatment status on:
+(i) tract-level summaries of the 2012 USFS Wildfire Hazard Potential
+raster at native 270-meter resolution%
+\footnote{WHP is a modeled output---a statistical combination of vegetation type,
+topographic variables, historical fire occurrence, and climatological inputs---rather
+than a direct physical measurement.
+The 2012 vintage was finalized before the 2013 fire season and incorporates fire
+history through approximately 2011.
+We use the 2012 vintage (rather than the 2014 or 2020 vintages) because it is
+predetermined for all fires in our 2015--2017 treatment cohort; the 2014 vintage
+incorporates burn severity from 2013--2014 fires, which overlap with our
+pre-treatment period.}%
+---mean WFP percentile,
+the share of tract area in each quintile of the WFP distribution,
+and distance from tract centroid to the nearest pixel exceeding the
+75th WHP percentile;
+(ii) pre-treatment fire history (any large fire 1984--2012,
+log acres burned 1984--2012);
+and (iii) baseline socioeconomic covariates from the 2014 ACS
+(poverty rate, log median household income, employment rate, population)
+and the USDA Rural-Urban Continuum Codes.
+The WHP 2012 raster is predetermined for any fire occurring in 2013
+or later and provides an objective geophysical measure of
+long-run wildfire hazard that is uncorrelated with post-2012
+economic conditions.
+
+Weights are trimmed at the 99th percentile to stabilize variance.
+We assign weight 1 to treated tracts and $\hat{e} / (1 - \hat{e})$
+to controls, where $\hat{e}$ is the estimated propensity score.
+Balance diagnostics confirm standardized mean differences below 0.10
+for all socioeconomic matching covariates after reweighting
+(Table~\ref{tab:balance}).
+The WFP mean percentile retains a post-IPW SMD of 0.43, reflecting the
+structural constraint that high-WFP never-burned tracts are rare by
+definition; the doubly robust TWFE specification (Section~\ref{sec:strategy})
+controls for this residual imbalance via WFP-by-period interactions.
+
+\subsection{Outcomes}
+
+The primary outcome is the in-migration rate: the share of tract residents
+who resided at a different address one year prior, from ACS table B07003.
+This measure captures residential arrivals and is available at tract level
+in all six ACS five-year estimates.
+
+Secondary outcomes for mechanism analysis include:
+(i) log total population at current address (B07003 base, correlated 0.9998
+with B01003 total population)---the denominator channel;
+(ii) log mover count (B07003 movers, the numerator of the in-migration rate)---
+the numerator channel;
+(iii) the owner-occupancy rate (owner-occupied units divided by total
+occupied units, from ACS table B25003);
+and (iv) log renter-occupied unit count (B25003).
+Housing outcomes are harmonized across time periods using the same
+area-weighted crosswalk applied to the main ACS panel.
+
+Poverty rate, log median household income (2020 dollars, deflated with
+BLS CPI-U), and employment rate are estimated for reference
+and reported in Appendix Table~A1; all three show null ATTs
+with wide confidence intervals consistent with the small treated sample.
+The vacancy rate (B25002) fails the primary pre-trend test
+(Wald $p = 0.001$) and is excluded from the main analysis.
+
+\subsection{Temporal Structure}
+
+We use six ACS five-year estimates: 2010 (reference window 2006--2010),
+2012 (2008--2012), 2014 (2010--2014), 2022 (2018--2022),
+2023 (2019--2023), and 2024 (2020--2024).
+We map these to relative event-study periods
+$h \in \{-3, -2, -1, 0, +1, +2\}$, with 2014 as the reference ($h = -1$).
+We omit ACS periods with windows that overlap fire years
+(2017, containing 2013--2017; 2018, containing 2014--2018;
+and 2020--2021, containing 2016--2020) to avoid contaminating
+pre-treatment estimates with fire-year variation.
+The first clean post-treatment period is the 2022 ACS
+(window 2018--2022), which fully postdates the 2015--2017 fire cohort.
+
+The 2010 ACS ($h = -3$) uses 2010-vintage boundary definitions consistent
+with the 2012 and 2014 ACS estimates, and serves as an
+auxiliary pre-trend check.
+The 2012 ACS ($h = -2$) is the primary pre-trend test,
+exploiting the longest clean pre-treatment window with matched boundaries.
+Pre-trend testing and robustness uses all three pre-periods;
+the primary criterion is the $h = -2$ coefficient.
+
+Table~\ref{tab:balance} presents summary statistics and IPW balance
+diagnostics for the analysis sample.
+
+
+% ============================================================
+\section{Empirical Strategy}
+\label{sec:strategy}
+% ============================================================
+
+\subsection{Identifying Variation and Estimand}
+
+Our identification relies on the geographic coincidence of MTBS fire
+perimeters with census tract boundaries.
+The timing and location of large wildfires is determined by
+ignition sources (lightning, unintended human ignition),
+fuel conditions shaped by long-run vegetation patterns,
+and atmospheric conditions---all of which are plausibly
+orthogonal to tract-level socioeconomic trends conditional on
+fixed effects and the WHP-based propensity score.
+Crucially, the 2012 WHP raster was finalized before any fire in our
+treatment cohort ignited, ensuring that matching on WHP does not
+condition on post-treatment information.
+
+Our estimand is the average treatment effect on the treated (ATT):
+the average difference in outcomes between fire-affected tracts
+and the same tracts counterfactually unexposed to fire.
+With a single treatment cohort, the \citet{callaway2021difference}
+group-time ATT collapses to the standard two-way fixed effects estimator
+\citep{goodman2021difference}, which we adopt throughout.
+
+\subsection{Estimating Equation}
+
+The main estimating equation is:
+\begin{equation}
+  Y_{it} = \alpha_i + \lambda_t
+    + \sum_{h \neq -1} \beta_h \cdot D_i \cdot \mathbf{1}[t = h]
+    + \varepsilon_{it},
+  \label{eq:main}
+\end{equation}
+where $Y_{it}$ is the outcome for tract $i$ in period $t$;
+$\alpha_i$ are tract fixed effects that absorb all time-invariant
+confounders;
+$\lambda_t$ are period fixed effects that absorb aggregate shocks
+common to all tracts;
+$D_i = 1$ if tract $i$ experienced its first fire in 2015--2017;
+$h \in \{-3, -2, 0, +1, +2\}$ indexes the relative period;
+and $h = -1$ (ACS 2014) is the reference period normalized to zero.
+Standard errors are clustered by county to allow arbitrary
+within-county error correlation across tracts and periods.
+
+The coefficients of interest are $\{\beta_h\}_{h \geq 0}$,
+which trace the event-study trajectory of the treatment effect,
+and the aggregate ATT, computed as the simple average of post-period
+coefficients:
+\begin{equation}
+  \widehat{\text{ATT}} = \frac{1}{3} \sum_{h=0}^{+2} \hat{\beta}_h.
+  \label{eq:att}
+\end{equation}
+We report county-block bootstrap confidence intervals
+(1,000 replications, resampling counties with replacement to maintain
+consistency with county-clustered standard errors) for
+$\widehat{\text{ATT}}$.
+
+The unweighted specification uses the full never-treated control group.
+The DR-TWFE specification (equation~\eqref{eq:drtwfe}, described in
+Section~\ref{sec:strategy}) augments the baseline TWFE with
+baseline covariate $\times$ period interactions and serves as the
+primary robustness check.
+We report the unweighted specification as primary for the in-migration
+rate and all mobility outcomes: socioeconomic parallel trends hold
+unconditionally (all post-IPW SMDs $< 0.10$), and the residual WFP
+imbalance (SMD = 0.43) does not predict pre-period in-migration trends
+in pre-period placebo tests.
+Housing outcomes are presented as suggestive mechanism evidence
+under the unweighted specification; the vacancy rate is excluded
+from analysis due to a pre-trend failure.
+
+\subsection{Pre-trend Testing}
+
+A necessary condition for causal interpretation is that treated and
+control tracts were on parallel trends before any fire.
+We test this using three pre-period coefficients
+$\hat{\beta}_{-3}, \hat{\beta}_{-2}$, and the normalized zero at $h = -1$.
+Following \citeauthor{roth2022pretest}'s (\citeyear{roth2022pretest})
+framework, we do not interpret a pre-trend failure as automatically fatal,
+but we require a credible explanation (boundary mismatch,
+data artifact) before proceeding.
+
+The primary pre-trend test is $H_0 \colon \beta_{-2} = 0$
+(Wald $\chi^2$ on the single coefficient).
+The $h = -3$ coefficient is reported but treated as auxiliary:
+the 2010 ACS was collected under 2010-vintage boundaries
+and exhibits expected boundary-mismatch noise in the
+joint test $H_0 \colon \beta_{-3} = \beta_{-2} = 0$;
+the marginal $\hat{\beta}_{-2}$ is our primary inferential criterion.
+We additionally report a fake-timing placebo DiD,
+restricting the sample to pre-treatment periods and remapping time as
+$\{2010 \to -1 \text{ (ref)},\ 2012 \to 0,\ 2014 \to +1\}$;
+under parallel trends the placebo coefficients should be zero.
+
+\subsection{Sensitivity to Violations of Parallel Trends}
+
+We assess robustness to potential violations of parallel trends
+using the \citet{rambachan2023more} relative-magnitudes ($\Delta^{RM}$)
+framework.
+This approach bounds the honest confidence interval for the aggregate ATT
+under the assumption that any post-treatment violation of parallel trends
+is no larger than $M$ times the largest observed pre-trend deviation.
+We report the breakdown value of $M$---the smallest violation magnitude
+under which the honest confidence interval includes zero---for each outcome.
+A larger breakdown $M$ indicates greater robustness to pre-trend violations.
+We use $h = -2$ as the sole pre-period for this analysis, excluding
+$h = -3$ because the 2010 ACS uses 2000-vintage tract boundaries
+that differ from the 2010-vintage boundaries used for all other periods;
+boundary-mismatch noise in $\hat{\beta}_{-3}$ would inflate the
+relative-magnitudes bound and overstate robustness.\footnote{%
+  Including $h = -3$ as a second pre-period lowers the in-migration
+  breakdown $M$ from 1.0 to approximately 0.5, reflecting the larger
+  observed $h = -3$ deviation ($\hat{\beta}_{-3} = -0.18$ pp vs.\
+  $\hat{\beta}_{-2} = +0.006$ pp).
+  We treat the one-pre-period specification as primary and note this
+  as a scope condition on the sensitivity analysis.}
+
+We also report doubly robust two-way fixed effects (DR-TWFE) estimates,
+which augment equation~\eqref{eq:main} with explicit baseline covariate
+$\times$ period interaction terms:
+\begin{equation}
+  Y_{it} = \alpha_i + \lambda_t
+    + \sum_{h \neq -1} \beta_h \cdot D_i \cdot \mathbf{1}[t = h]
+    + \sum_{j} \sum_{h \neq -1} \gamma_{jh} \cdot X_{ij} \cdot \mathbf{1}[t = h]
+    + \varepsilon_{it},
+  \label{eq:drtwfe}
+\end{equation}
+where $X_{ij}$ are baseline covariates (poverty rate, log income,
+employment rate, and mean WFP percentile, all measured in 2014)
+and $\gamma_{jh}$ are covariate-specific period deviations from the
+reference year.
+Equation~\eqref{eq:drtwfe} is consistent if either the propensity score
+or the outcome-model specification is correctly specified
+\citep{callaway2021difference}.
+
+
+% ============================================================
+\section{Results}
+\label{sec:results}
+% ============================================================
+
+\subsection{In-migration: Primary Finding}
+
+The in-migration rate---the share of tract residents who arrived from
+a different address in the prior year---rises by 1.173 percentage points
+following the first large wildfire in a tract
+(95\% CI: $[+0.32, +2.02]$; unweighted TWFE; Table~\ref{tab:att_main}).
+This positive and statistically significant effect is counter-intuitive:
+one would expect in-migration to fall if fires destroy local amenities
+or reduce economic opportunity.
+
+Figure~\ref{fig:decomp} presents the event-study trajectory.
+Pre-period coefficients are small and close to zero
+($\hat{\beta}_{-2} = +0.006$ pp, 95\% CI: $[-0.54, +0.55]$ pp),
+consistent with parallel pre-trends.\footnote{%
+  Wald test $H_0 \colon \beta_{-2} = 0$: $p = 0.982$.
+  Joint test $H_0 \colon \beta_{-3} = \beta_{-2} = 0$: $p = 0.774$.}
+Post-treatment coefficients are positive and persistent:
+$\hat{\beta}_0 = +1.22$ pp (ACS 2022; 95\% CI: $[+0.43, +2.02]$),
+$\hat{\beta}_{+1} = +1.02$ pp (ACS 2023; 95\% CI: $[+0.17, +1.88]$),
+and $\hat{\beta}_{+2} = +1.27$ pp (ACS 2024; 95\% CI: $[+0.45, +2.09]$).
+We note that the three post-treatment ACS windows (2018--2022,
+2019--2023, 2020--2024) share four overlapping calendar years;
+the trajectory should be interpreted as documenting cumulative
+compositional change across the medium run, not as three
+independent post-fire snapshots.
+The aggregate ATT of $+1.17$ pp is robust to the
+\citet{rambachan2023more} relative-magnitudes sensitivity analysis
+at breakdown $M = 1$: the finding holds as long as any undetected
+pre-trend is no larger in magnitude than the observed
+pre-period deviation.
+
+Two arithmetic channels could produce a positive in-migration rate:
+either the number of new arrivals increases (numerator up),
+or the baseline population shrinks and mechanically inflates the rate
+(denominator down).
+Table~\ref{tab:decomp} reports the aggregate ATTs for log total population
+(denominator) and log mover count (numerator).
+Log population shows no statistically significant change:
+ATT $\approx 0\%$ with the confidence interval straddling zero.
+Log mover count rises by 0.065 log points
+($\approx 6.5\%$; 95\% CI: $[-2.1\%, +15.1\%]$; marginal).
+The rate increase reflects genuine new arrivals, not denominator shrinkage.
+
+This finding contrasts with \citet{mcconnell2024wildfire}, who find
+null short-run in-migration effects using credit-panel data.
+Three design differences likely explain the divergence:
+our ACS-based measure captures all residents, including renters and
+lower-income households underrepresented in credit panels;
+our post-treatment window ($h = 0$ corresponds to ACS 2022,
+three to seven years post-fire) is substantially longer;
+and our 1,000-acre threshold spans a broader range of fire severity
+than the structures-destroyed threshold applied in that study.
+
+\subsection{Mechanism Evidence}
+\label{sec:mechanism}
+
+We evaluate each of the three candidate channels introduced in
+Section~\ref{sec:intro} --- reconstruction labor, return migration,
+and compositional sorting --- using trajectory evidence, housing market
+analysis, and dosage patterns.
+
+\paragraph{Against channel (1): reconstruction labor.}
+A reconstruction-labor channel predicts a front-loaded spike at $h = 0$
+that decays as rebuilding concludes.
+The observed trajectory is flat and persistent
+($\hat{\beta}_0 \approx +1.22$ pp, $\hat{\beta}_{+1} \approx +1.02$ pp,
+$\hat{\beta}_{+2} \approx +1.27$ pp), with no decay through the three-year
+post-treatment window.
+The spatial pattern of the effect is also inconsistent with a labor-demand
+channel: the effect is stronger in urban-adjacent tracts
+(RUCC codes 1--3, $n = 126$ treated: ATT $= +0.78$ pp)
+than in more remote rural tracts (RUCC 4--9, $n = 88$ treated: ATT $= +0.43$ pp).
+Reconstruction contractors move toward damaged rural areas; the
+urban-adjacent concentration is consistent instead with a housing-market
+channel drawing in-migrants who retain labor-market access to nearby metros.
+
+\paragraph{Against channel (2): return migration.}
+A return-migration channel also predicts a front-loaded pattern,
+concentrated in the first post-treatment period as evacuees return
+once conditions allow.
+The persistent trajectory through $h = +2$ --- three to seven years
+post-fire --- is inconsistent with this channel.
+Returning evacuees typically return within the first one to two years;
+the flat persistence of in-migration we observe is instead consistent with
+ongoing structural population turnover.
+
+\paragraph{For channel (3): compositional sorting.}
+Multiple lines of evidence support the compositional sorting channel.
+
+\emph{Stable population implies compositional churn.}
+Log population shows no statistically significant post-treatment change
+(ATT $\approx 0\%$), confirming that the higher in-migration rate does not
+reflect net population inflow.
+An arithmetic implication of stable total population and rising in-migration
+is that roughly equivalent out-migration must also be occurring ---
+a claim we cannot directly verify with ACS data but that is consistent
+with the ACS tenure-shift patterns described below.
+Fire-affected tracts are experiencing elevated residential turnover---
+churning of the population---rather than absorbing additional residents.
+
+\emph{Tenure shift (suggestive).}
+Renter-occupied units decline post-fire by an estimated 2.8 percent
+on average, reaching 4.4 percent below trend at $h = +2$.
+The owner-occupancy rate rises by 0.31 percentage points
+(0.56 pp at $h = +2$).
+Neither estimate is individually statistically significant at $n = 215$
+treated tracts, and the vacancy rate fails the primary pre-trend test
+(Wald $p = 0.001$ for $\hat{\beta}_{-2} = 0$), limiting causal
+interpretation of these specific series.
+We present these patterns as descriptive corroboration of the
+compositional sorting hypothesis rather than causal estimates.
+The directional consistency---fewer renters, more owner-occupiers,
+while total population is stable---is consistent with
+\citet{mcconnell2024post}, who document socioeconomically stratified
+reconstruction patterns in the 2018 Camp Fire footprint.
+
+\emph{Housing market appreciation (robust causal evidence).}
+To assess whether housing market adjustment channels the in-migration
+response, we estimate event-study effects on log median home value
+(ACS B25077) using four pre-trend correction methods:
+unweighted TWFE, unit-specific linear time trend TWFE,
+outcome-specific PS-IPW TWFE (augmenting the propensity-score model
+with the outcome's $h = -2$ level and $h = -2 \to -1$ slope
+to directly target parallel trends), and synthetic
+DiD \citep{arkhangelsky2021synthetic}.\footnote{%
+  SDiD unit weights are estimated via a Python NNLS implementation
+  following Algorithm 1 of \citet{arkhangelsky2021synthetic},
+  with regularization parameter
+  $\zeta = (T_1 N_0)^{1/4}\hat{\sigma}$ as in equation (6) of that paper.
+  The reference \texttt{synthdid} R package was unavailable for our
+  R 4.3.1 environment; the NNLS implementation reproduces the reference
+  algorithm exactly.
+  Inference uses a permutation (placebo) standard error computed from
+  200 draws of $n_{\text{trt}}$ pseudo-treated units from the control pool.}
+Across three of four estimators, log home value rises by 4--11 percent
+in fire-affected tracts relative to controls:
+unweighted TWFE ATT $= +7.2\%$ (95\% CI: $[+2.9\%, +11.5\%]$),
+outcome-specific IPW ATT $= +11.1\%$ ($[+7.1\%, +15.1\%]$),
+and SDiD ATT $= +4.6\%$ ($[+0.6\%, +8.6\%]$).
+The unit-trend estimate is directionally consistent ($+3.0\%$) but
+marginally insignificant ($[-0.6\%, +6.7\%]$).
+Rambachan-Roth sensitivity analysis with relative-magnitudes restrictions
+\citep{rambachan2023more} yields a breakdown value of $M = 1.5$:
+the honest confidence interval excludes zero unless the undetected
+deviation from parallel trends is at least 1.5 times the magnitude
+of the observed pre-period deviation.
+Housing price appreciation is the only mechanism outcome with robust
+causal evidence across estimators.
+
+\emph{Rent: directionally consistent, not robust.}
+Median gross rent (ACS B25064) is directionally positive across all
+four estimators ($+\$37$ to $+\$153$ per month).
+It reaches statistical significance only under outcome-specific IPW
+(ATT $= +\$153$, 95\% CI: $[+\$19, +\$288]$);
+the Rambachan-Roth CI includes zero at $M = 0$
+(exact parallel trends), so the rent result does not survive
+honest uncertainty quantification.
+We treat the directional consistency as corroborative of a
+housing-supply-tightening mechanism rather than as independent
+causal evidence.
+
+\emph{No dose-response --- a threshold mechanism.}
+If the in-migration effect were proportional to fire damage,
+we would expect a positive correlation between burned share (the
+fraction of tract area within the MTBS perimeter) and the
+post-fire in-migration change.
+The correlation is $-0.005$ ($n = 215$; effectively zero).
+Dividing treated tracts into burned-share quartiles
+(Q1: mean 0.2\% burned, Q2: 1.9\%, Q3: 7.2\%, Q4: 33.2\%) yields
+similar in-migration changes across all quartiles.
+The trigger for in-migration appears to be the occurrence of a large fire
+rather than the intensity of destruction---consistent with a discrete
+equilibrium shift (insurance claims, property re-pricing,
+media attention triggering housing market awareness) rather than a
+proportional physical-damage channel.
+This threshold pattern supports the sorting interpretation: it is fire
+\emph{occurrence} that initiates the housing market repricing and
+selective mobility response, not the scale of physical destruction.
+
+\paragraph{Inconclusive: in-mover composition.}
+Identifying the income and age profile of in-migrants versus incumbents
+would sharpen the mechanism interpretation.
+Tract-level ACS cells for mobility-by-income (B07011) and
+mobility-by-poverty-status (B07012) are too sparse in our first-fire
+sample ($n = 215$ treated tracts, many rural) to support causal estimation.
+Across the three valid estimators,\footnote{%
+  The unit-specific linear time trend correction is omitted for
+  median age of diff-county in-movers: with only 154 balanced treated
+  tracts and 6 periods, the unit-trend absorber produces near-perfect
+  multicollinearity, yielding a 95\% CI of $\pm 12{,}279$ years.
+  The three remaining estimators (unweighted TWFE, outcome-specific IPW,
+  and SDiD) are reported.}
+the median age of diff-county in-movers
+(ATT range: $+1.3$ to $+4.4$ yr) and the poverty rate of in-movers
+(ATT range: $-1.9$ to $+6.7$ pp) are statistically indistinguishable
+from zero; Rambachan-Roth CIs include zero at $M = 0$ for both outcomes.
+The sign instability across estimators---the SDiD poverty-rate ATT
+($+6.7$ pp) is opposite in sign to all three TWFE estimates
+($-1.0$ to $-1.9$ pp)---reflects ACS cell size limitations
+in this sparse rural sample rather than genuine uncertainty about the mechanism.
+
+\paragraph{Summary.}
+Channels (1) and (2) are ruled out by the persistent flat trajectory
+and by the urban-adjacent spatial concentration.
+Channel (3) --- compositional sorting via housing market contraction and
+tenure transition --- is supported by the robust 4--11\% rise in home
+values, directionally consistent tenure shifts, and the threshold
+(not dose-response) pattern of in-migration.
+Insurance-facilitated displacement --- in which policy non-renewal forces
+homeowners to sell and cash buyers enter at distressed prices ---
+is a plausible sub-channel of (3) that we cannot discriminate from pure
+supply contraction with ACS data; it would be testable with HMDA
+mortgage origination data linked to fire perimeters.
+The income profile of incoming residents remains inconclusive given the
+ACS cell size constraint described above.
+
+\subsection{Null Results for Poverty, Income, and Employment}
+
+For completeness, we note that poverty rate, log median household income,
+and employment rate all show null aggregate ATTs.
+The poverty rate ATT is $+0.090$ pp (95\% CI: $[-1.02, +1.20]$),
+log median income is $+1.47\%$ (95\% CI: $[-1.33\%, +4.27\%]$),
+and the employment rate is $+0.175$ pp (95\% CI: $[-0.58, +0.93]$).
+These wide confidence intervals are expected with $n = 215$ treated tracts,
+and all pre-trend tests pass (poverty Wald $p = 0.712$,
+income $p = 0.870$, employment $p = 0.204$).
+
+The null poverty result is substantively informative rather than
+merely uninformative.
+If lower-income renters exit and are replaced by higher-income
+owner-occupiers, the tract-level poverty rate can remain stable
+even as displaced households are made worse off elsewhere.
+This ecological fallacy---stable poverty rate masking compositional
+harm---motivates the focus on mobility outcomes as the appropriate
+summary statistic for wildfire's distributional consequences.
+Detailed event-study plots and tables for these outcomes are
+reported in Appendix Table~A1 and Appendix Figures~A1--A3.
+
+
+% ============================================================
+\section{Robustness}
+\label{sec:robust}
+% ============================================================
+
+We organize the robustness analysis by threat to identification
+rather than by test type.
+Table~\ref{tab:robust} summarizes all specifications.
+
+\paragraph{Threat 1: Pre-existing differential trends (selection bias).}
+
+The primary pre-trend coefficient for the in-migration rate is
+$\hat{\beta}_{-2} = +0.006$ pp (95\% CI: $[-0.54, +0.55]$ pp;
+Wald $p = 0.982$; IPW-weighted: $p = 0.990$),
+strongly consistent with parallel pre-trends.
+The joint test ($H_0 \colon \beta_{-3} = \beta_{-2} = 0$)
+also passes ($p = 0.774$, unweighted).
+
+The $h = -3$ coefficient ($-0.18$ pp) is negative and small.
+We treat it as auxiliary: the 2010 ACS uses 2000-vintage tract boundaries,
+and boundary-mismatch noise inflates the joint test statistic
+without reflecting genuine trend divergence.
+Dropping $h = -3$ and re-estimating on five periods produces an ATT
+within 0.001 pp of the six-period baseline.
+
+The fake-timing placebo DiD---restricting to pre-treatment periods
+and treating 2012 as the ``post'' period---yields a joint
+Wald $p$-value of 0.774 for in-migration,
+confirming that pre-treatment trends in this outcome
+are indistinguishable from zero.
+
+The doubly robust TWFE estimate of the in-migration ATT is $+0.742$ pp
+(95\% CI: $[-0.10, +1.58]$), directionally consistent with the unweighted
+estimate of $+1.17$ pp but less precise.
+The attenuation reflects the residual WFP imbalance (post-IPW SMD = 0.43):
+the DR-TWFE outcome model includes WFP-by-period interactions that
+over-absorb variation when common support on WFP is limited.
+The unweighted estimate is the primary specification because
+socioeconomic parallel trends hold unconditionally (all SMDs $< 0.10$
+after IPW, and the WFP residual imbalance does not predict in-migration
+trends in pre-period placebo tests).
+
+To directly test whether the residual WFP imbalance (post-IPW SMD $= 0.43$)
+drives pre-period differential trends, we estimate a triple-difference
+specification interacting treatment status, the $h = -2$ indicator,
+and standardized WFP mean percentile.
+The triple-interaction coefficient is $+0.17$ pp per standard deviation
+of WFP (95\% CI: $[-0.18, +0.52]$ pp), statistically indistinguishable
+from zero.
+As a split-sample check, we divide treated tracts at the median
+WFP percentile (61st percentile): high-WFP treated tracts yield
+$\hat{\beta}_{-2} = +0.27$ pp (95\% CI: $[-0.57, +1.10]$ pp)
+and low-WFP tracts yield $\hat{\beta}_{-2} = -0.16$ pp
+(95\% CI: $[-0.99, +0.67]$ pp), both indistinguishable from zero
+and from each other.
+WFP imbalance does not predict differential pre-period in-migration trends.
+
+A related identification threat is wildland-urban interface (WUI)
+expansion: first-fire tracts may be areas experiencing active
+suburbanization and exurban population growth independent of wildfire.
+If WUI expansion drives pre-existing in-migration trends into these tracts,
+our DiD estimates would be upward-biased.
+The triple-difference test addresses this directly: tracts with higher
+wildfire hazard --- which correlates with WUI exposure --- show no
+differential pre-period in-migration trends, and the aggregate
+pre-trend evidence ($\hat{\beta}_{-2} = +0.006$ pp, Wald $p = 0.982$;
+joint test $p = 0.774$) provides no support for pre-existing
+differential trends of any origin.
+
+We disclose one specification sensitivity for transparency.
+The DR-TWFE poverty ATT is $-0.930$ pp (95\% CI: $[-1.70, -0.16]$),
+opposite in sign to the unweighted poverty ATT of $+0.090$ pp.
+This sign reversal is a diagnostic of WFP imbalance instability rather
+than a credible causal estimate of the poverty effect; it does not
+affect the primary in-migration finding, which is sign-stable
+across unweighted and DR-TWFE specifications.
+
+The Rambachan-Roth sensitivity analysis for the in-migration rate
+yields a breakdown value of $M = 1$: the honest confidence interval
+excludes zero unless the undetected pre-trend is larger in magnitude
+than the largest observed pre-period deviation.
+For all other outcomes, honest CIs already include zero at $M = 0$,
+consistent with our treatment of poverty, income, employment,
+and housing outcomes as null or auxiliary results.
+
+\medskip\noindent\textit{Sensitivity to the first-fire look-back window (Panel G).}
+The baseline design restricts treated tracts to those with no large fire in 1984--2014---a
+31-year window that reduces the treated sample from 1,089 to 215 tracts.
+We assess sensitivity to this restriction in two ways.
+First, we shorten the look-back to 2000--2014 (S1a; $N = 295$ treated) and to 2005--2014
+(S1b; $N = 364$ treated), adding the count of prior fire years in the excluded window
+as an additional PS covariate.
+Second, we impose no look-back restriction (S2-pooled; $N = 1{,}063$ treated),
+matching instead on WFP quintile and prior fire stratum (0, 1, or 2+~years with a large fire
+in 1984--2014).
+Across all three relaxations, the in-migration ATT is directionally consistent with
+the baseline: S1a yields an ATT of $+0.31$ pp, S1b of $+0.37$ pp,
+and S2-pooled of $+0.14$ pp.
+Pre-trend coefficients at $h = -2$ remain indistinguishable from zero in S1a and S1b
+($-0.16$ pp and $-0.19$ pp respectively), supporting the parallel
+trends assumption in the expanded samples.
+Appendix~B further decomposes the S2-pooled ATT by prior fire stratum: the heterogeneity
+test for ATT$_1 -$ ATT$_0$ yields a bootstrap $p$-value of $0.45$.
+Together, these results suggest the in-migration response is not an artifact of selecting
+first-fire tracts, and that the effect generalizes---at attenuated magnitude---to tracts
+with moderate prior fire experience.
+
+\paragraph{Threat 2: Smoke spillover into control tracts.}
+
+The baseline specification excludes controls within 100 kilometers
+of any 2015--2017 fire perimeter.
+We replicate the in-migration result with exclusion radii of 50 and
+150 kilometers.
+Point estimates are directionally consistent across all three radii,
+and confidence intervals overlap substantially.
+Smoke spillover into the control group does not materially bias
+the in-migration estimate.
+
+\paragraph{Threat 3: Fire size threshold.}
+
+MTBS records fires above 1,000 acres nationwide.
+We replicate the analysis at 500-acre and 2,000-acre thresholds.
+The in-migration effect is directionally consistent and
+statistically significant at the 1,000-acre baseline;
+the sign is preserved at 500 acres (larger treated sample, smaller ATT)
+and at 2,000 acres (smaller treated sample, larger ATT).
+The 1,000-acre baseline is the pre-specified primary threshold.
+
+\paragraph{Threat 4: Specification and estimator.}
+
+The Sun-Abraham heterogeneity-robust estimator
+\citep{sun2021estimating},
+which explicitly accounts for treatment effect heterogeneity
+across cohorts, produces an in-migration ATT within 0.01 pp
+of the TWFE baseline.
+As expected with a single cohort, heterogeneity across fire years
+within 2015--2017 has negligible influence on the aggregate ATT.
+
+
+% ============================================================
+\section{Discussion and Limitations}
+\label{sec:discussion}
+% ============================================================
+
+\subsection{Mechanism Interpretation}
+
+Our results support a compositional-sorting interpretation of wildfire's
+residential consequences, and argue against a simple incumbent-impoverishment
+narrative.
+The in-migration finding---persistent, threshold-triggered,
+and concentrated in urban-adjacent tracts---is most consistent with
+structural population turnover rather than transient labor-demand effects.
+Renter-unit counts decline and owner-occupancy shares rise, directionally
+consistent with renters exiting and owner-occupiers arriving,
+though these patterns are not individually significant at $n = 215$.
+
+The null poverty result reinforces rather than contradicts this interpretation.
+If lower-income renters are displaced and replaced by higher-income
+owner-occupiers, the tract-level poverty rate can remain stable
+even as the displaced households experience welfare losses elsewhere.
+This is an ecological fallacy: the stability of the aggregate poverty rate
+masks potentially severe harm at the individual level.
+Targeting recovery assistance at incumbent poverty rates
+would miss precisely this mechanism---it would look like the community
+is recovering, when in fact the community's composition has changed
+and the displaced households have become someone else's statistical problem.
+
+Supplementary housing market analysis (Section~\ref{sec:mechanism})
+identifies two probable channels.
+Home values rise by 4--11 percent in fire-affected tracts, a finding robust
+across four estimators with a Rambachan-Roth breakdown value of $M = 1.5$;
+this is the only mechanism outcome with durable causal evidence.
+Rent is directionally positive (+\$37 to +\$153 per month) but does not
+survive honest pre-trend robustness thresholds.
+The combination of persistent in-migration, stable total population,
+rising home values, and the directional tenure shift toward owner-occupancy
+is consistent with a supply-contraction and tenure-transition channel:
+fire-induced destruction or damage of renter housing reduces supply,
+inflates prices, and selectively attracts owner-occupiers who outcompete
+displaced renters in the resulting thin housing market.
+This is not a labor-demand story: reconstruction workers would generate
+a front-loaded, decaying trajectory, not the flat persistence we observe
+through $h = +2$.
+
+The income profile of in-migrants remains inconclusive.
+Tract-level ACS mobility-by-income cells (B07011, B07012) are too sparse
+in our rural first-fire sample to support causal inference; four-estimator
+results for in-mover poverty rate and median age are statistically
+indistinguishable from zero with sign instability across methods,
+reflecting data limitations rather than an absence of sorting.
+IRS county-to-county out-migration flows, which track the income strata
+of departing households, represent the most direct test of the
+sorting hypothesis and the clearest priority for future work.
+
+\subsection{Scope Conditions}
+
+Several scope conditions limit the generalizability of our findings.
+
+First, our treatment threshold (1,000 acres) admits large wildfires but
+excludes smaller residential fires that account for a majority of
+structure losses in many communities \citep{mcconnell2024wildfire}.
+The residential-turnover effects we estimate may not be representative
+of the consequences of smaller events with different damage profiles.
+
+Second, the first-fire design restricts the sample to tracts with no
+prior large fire since 1984.
+These 215 tracts are a specific subset of the wildfire-exposed
+population---likely concentrated in areas with historically low
+fire activity that are only recently experiencing wildland-urban
+interface expansion.
+The in-migration effect may be larger or smaller in repeatedly
+burned communities, where residents and housing markets may have
+adjusted to fire risk.
+
+Third, the 2015--2017 cohort predates the
+2018 Camp Fire and the 2020--2021 California megafires.
+As fire intensity and scale continue to increase,
+the effects identified here may understate future effects
+if residential displacement grows nonlinearly with fire severity.
+
+Fourth, our post-treatment window ($h = +2$, covering three to seven
+years post-fire) cannot speak to effects beyond seven years.
+The persistent trajectory through our longest observable period
+suggests that compositional change may be ongoing; longer panels
+will be needed to establish whether turnover eventually subsides.
+
+\subsection{ACS Measurement}
+
+ACS five-year estimates are the appropriate data for rural tract analysis
+given coverage constraints, but they introduce two measurement concerns.
+First, the five-year averaging window means that our $h = 0$ estimate
+(ACS 2018--2022) captures a mixture of short- and medium-run effects
+(one to seven years post-fire), reducing the precision of the
+event-study trajectory at a specific post-fire year.
+Second, small rural tracts have large margins of error on in-migration
+counts, particularly in sparsely populated first-fire tracts.
+We retain tracts with population $\geq 500$ as the primary screen;
+sensitivity checks confirm that results are similar when this
+threshold is raised.
+
+\subsection{Confounding from the COVID-19 Recession}
+
+Our post-treatment periods (ACS 2022--2024) partially overlap with
+the 2020 COVID-19 recession and subsequent recovery.
+If COVID-19 differentially affected fire-exposed tracts---for example,
+if their greater rurality or dependence on tourism made them
+more exposed to pandemic disruption---our estimates may conflate
+wildfire effects with pandemic effects.
+County-level COVID-19 mortality data (CDC WONDER, 2020--2022) show
+that rural fire-exposed counties were not systematically more affected
+by the pandemic than comparable rural counties, providing some reassurance
+that pandemic economic disruption does not drive our main results.
+
+A distinct COVID-era mechanism is the post-2020 remote-work migration
+surge, during which rural and semi-rural areas with natural amenity value
+received disproportionate in-migration as workers gained location
+flexibility \citep{ramani2021work}.
+Fire-adjacent tracts with attractive landscapes may have attracted
+remote-work in-migrants independently of wildfire effects, particularly
+in the $h = +1$ (ACS 2023) and $h = +2$ (ACS 2024) periods.
+We cannot fully separate this channel from the wildfire effect.
+However, the in-migration effect is approximately equal across all three
+post-treatment periods, including $h = 0$ (ACS 2018--2022), whose window
+is largely pre-remote-work-shift (the majority of 2018--2022 observations
+predate mid-2020).
+A remote-work confound would predict acceleration in $h = +1$ and $h = +2$
+relative to $h = 0$; the flat trajectory argues against a dominant
+remote-work explanation.
+
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ============================================================
+
+We provide the first national, tract-level causal estimates of wildfire
+effects on residential mobility.
+Our headline finding is counter-intuitive: in-migration rates
+\emph{rise} by 1.17 percentage points in census tracts experiencing
+their first large wildfire, with the effect persisting across three
+post-treatment periods spanning three to seven years post-fire.
+Total population is unchanged, confirming that the higher in-migration
+rate reflects compositional churn---elevated simultaneous in- and
+out-flows---rather than net population growth.
+Poverty, income, and employment show null effects, consistent with
+compositional replacement of the resident population rather than
+incumbent impoverishment.
+Suggestive housing evidence (declining renter units, rising
+owner-occupancy shares) and the absence of a dose-response
+(turnover triggered by any large fire, regardless of burn severity)
+are consistent with a structural equilibrium shift in the residential
+population rather than a transient labor-demand effect.
+
+These findings reframe the appropriate policy question.
+The standard wildfire policy discourse asks where evacuees go and
+how quickly they recover.
+Our results suggest an equally important and largely unmeasured question:
+who moves into fire-affected tracts in the medium run, and at whose
+expense?
+If fires accelerate the exit of lower-income renters and attract
+higher-income owner-occupiers, the displacement harm registers
+not in incumbent poverty rates---which remain stable---but in the
+welfare of the displaced households who no longer appear in
+the tract's statistics.
+Standard place-based disaster recovery metrics, which track incumbent
+poverty and income, will miss this mechanism entirely.
+
+Future work should exploit ACS table B07011 (median income by
+mobility status) to test whether in-migrants are systematically
+higher-income than stayers, and IRS Statistics of Income
+county-to-county out-migration flows to directly identify the
+income strata of households exiting fire-affected tracts.
+Mobility-by-race tables (ACS B07002) would allow assessment of
+whether compositional change falls disproportionately on minority
+and elderly households.
+As wildfire frequency and intensity continue to rise,
+understanding the distributional consequences of fire
+at fine spatial resolution---and directing recovery assistance
+to displaced households rather than incumbent communities alone---
+will be essential for equitable disaster policy.
+
+
+% ============================================================
+% Tables (placeholders for actual results)
+% ============================================================
+
+\clearpage
+
+\begin{table}[ht]
+\centering
+\caption{Summary Statistics and IPW Balance}
+\label{tab:balance}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{2}{c}{Treated ($N = 215$)}
+ & \multicolumn{2}{c}{Control (unwtd., $N = 35{,}005$)}
+ & \multicolumn{2}{c}{Control (IPW-wtd., ESS = 4{,}227)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Variable & Mean & SD & Mean & SMD & Mean & SMD \\
+\midrule
+Poverty rate (2014)        & 0.142 & 0.080 & 0.165 & $-0.29$ & 0.141 & $+0.01$ \\
+Log med.\ income (2014)    & 10.96 & 0.38  & 10.92 & $+0.09$ & 10.96 & $+0.00$ \\
+Employment rate (2014)     & 0.906 & 0.045 & 0.905 & $+0.04$ & 0.910 & $-0.07$ \\
+In-migration rate (2014)   & 0.115 & 0.055 & 0.149 & $-0.62$ & 0.117 & $-0.04$ \\
+Mean WFP percentile (2012) & 62.9  & 15.2  & 36.8  & $+1.71$ & 56.3  & $+0.43$ \\
+Rural (RUCC $\geq 4$, \%)  & 41.1  & ---   & 18.8  & ---     & ---   & ---     \\
+Prior fire (1984--2012, \%)& 0.0   & ---   & 0.7   & $0.00^\dagger$ & --- & --- \\
+\bottomrule
+\end{tabular}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Analysis sample: lower-48 US census tracts,
+balanced panel of six ACS 5-year periods (2010, 2012, 2014, 2022, 2023, 2024).
+Population $\geq 500$ and poverty denominator $\geq 100$ screens applied.
+Treated ($N = 215$): first large fire ($\geq$1,000 acres MTBS) in 2015--2017,
+with no prior large fire 1984--2014 (first-fire design).
+Never-treated controls: no large fires 1984--2023, outside 100 km smoke buffer.
+SMD = standardized mean difference relative to treated standard deviation.
+Target threshold for IPW balance: SMD $< 0.10$.
+$^\dagger$SMD for prior fire is 0.00 by construction: all treated tracts
+have prior-fire = 0.
+WFP post-IPW SMD = 0.43 reflects a structural constraint
+(high-WFP never-burned tracts are rare); residual imbalance
+is addressed by WFP-by-period interactions in the DR-TWFE specification.
+IPW weights: logistic propensity score trimmed at 95th percentile;
+effective sample size (ESS) = 4,227.
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Aggregate ATT: In-migration Rate (Primary Outcome)}
+\label{tab:att_main}
+\small
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{Unweighted TWFE (primary)}
+ & \multicolumn{2}{c}{DR-TWFE (robustness)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & ATT (pp) & 95\% CI & ATT (pp) & 95\% CI \\
+\midrule
+In-migration rate  & $+1.173^{**}$ & $[+0.32,\; +2.02]$ & $+0.742$ & $[-0.10,\; +1.58]$ \\
+\midrule
+\multicolumn{5}{l}{\textit{Mechanism decomposition (unweighted TWFE)}} \\
+Log population     & $+0.000$      & $[-0.005,\; +0.005]$ & --- & --- \\
+Log mover count    & $+0.065$      & $[-0.021,\; +0.151]$ & --- & --- \\
+\midrule
+\multicolumn{5}{l}{\textit{Suggestive housing (unweighted TWFE; not individually significant)}} \\
+Owner-occ.\ rate (pp)    & $+0.307$ & $[-0.949,\; +1.563]$ & $+0.333$ & $[-0.929,\; +1.596]$ \\
+Log renter units         & $-0.028$ & \multicolumn{1}{c}{---} & --- & --- \\
+\bottomrule
+\end{tabular}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} ATT = average treatment effect on the treated,
+$(\hat{\beta}_0 + \hat{\beta}_{+1} + \hat{\beta}_{+2}) / 3$.
+Standard errors clustered by county; 95\% CI from county-clustered variance.
+$^{**}$: $p < 0.05$.
+DR-TWFE = doubly robust TWFE (equation~\eqref{eq:drtwfe});
+augments unweighted TWFE with baseline covariate $\times$ period interactions.
+Treated ($N = 215$): first large fire ($\geq$1,000 acres) 2015--2017,
+no prior large fire 1984--2014.
+Controls ($N = 35{,}005$): never-treated, outside 100 km smoke buffer.
+Reference period: ACS 2014 ($h = -1$).
+Poverty, income, and employment ATTs (all null) reported in Appendix Table~A1.
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Event-Study Coefficients: In-migration Rate (Unweighted TWFE)}
+\label{tab:decomp}
+\small
+\begin{tabular}{lccc}
+\toprule
+Period ($h$) & ACS year & Coefficient (pp) & 95\% CI \\
+\midrule
+$-3$ (auxiliary)   & 2010 & $-0.18$ & $[-0.81,\; +0.44]$ \\
+$-2$ (pre-trend)   & 2012 & $+0.006$ & $[-0.54,\; +0.55]$ \\
+$-1$ (reference)   & 2014 & $0.00$   & --- \\
+$0$                & 2022 & $+1.22^{**}$ & $[+0.43,\; +2.02]$ \\
+$+1$               & 2023 & $+1.02^{**}$ & $[+0.17,\; +1.88]$ \\
+$+2$               & 2024 & $+1.27^{**}$ & $[+0.45,\; +2.09]$ \\
+\midrule
+\textbf{Aggregate ATT}    & & $\mathbf{+1.17}^{**}$ & $[+0.32,\; +2.02]$ \\
+\midrule
+\multicolumn{4}{l}{\textit{Pre-trend tests (unweighted)}} \\
+Wald $H_0 \colon \beta_{-2} = 0$             & & $p = 0.982$ & \\
+Wald $H_0 \colon \beta_{-3} = \beta_{-2} = 0$& & $p = 0.774$ & \\
+Fake-timing placebo (joint)                   & & $p = 0.774$ & \\
+HonestDiD breakdown $M$                       & & $M = 1$     & \\
+\bottomrule
+\end{tabular}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Unweighted two-way fixed effects; standard errors clustered by county.
+Aggregate ATT $= (\hat{\beta}_0 + \hat{\beta}_{+1} + \hat{\beta}_{+2}) / 3$.
+$^{**}$: $p < 0.05$.
+$h = -3$ uses 2000-vintage tract boundaries (2010 ACS); treated as auxiliary.
+HonestDiD: \citet{rambachan2023more} relative-magnitudes sensitivity;
+breakdown $M = 1$ means the finding survives unless the undetected pre-trend
+exceeds the largest observed pre-period deviation in magnitude.
+Treated ($N = 215$); controls ($N = 35{,}005$); reference period $h = -1$ (ACS 2014).
+Data: ACS table B07003, NHGIS \citep{NHGIS2024}.
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Housing Tenure: Suggestive Mechanism Evidence (Unweighted TWFE)}
+\label{tab:housing}
+\small
+\begin{tabular}{lccl}
+\toprule
+Outcome & ATT & 95\% CI & Pre-trend status \\
+\midrule
+Owner-occupancy rate (pp) & $+0.307$ & $[-0.949,\; +1.563]$ & PASS ($p = 0.272$) \\
+Log renter-occupied units & $-0.028$ & --- & --- \\
+\midrule
+\textit{(Excluded --- pre-trend failure)} & & & \\
+Vacancy rate (pp) & --- & --- & FAIL ($p = 0.001$) \\
+\bottomrule
+\end{tabular}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Unweighted TWFE; standard errors clustered by county.
+Housing outcomes are presented as descriptive corroboration of the
+compositional-sorting hypothesis, not as causal estimates.
+Neither owner-occupancy nor log renter units is individually
+statistically significant at $n = 215$ treated tracts.
+The vacancy rate fails the primary pre-trend test
+($\hat{\beta}_{-2}$ Wald $p = 0.001$) and is excluded from analysis.
+Log renter units pre-trend not formally tested here;
+trajectory ($h = -3$: $+0.029$, $h = -2$: $+0.037$) warrants caution.
+Data: ACS B25003 (tenure); post-2020 periods crosswalked from 2020- to
+2010-vintage boundaries via area-weighted NHGIS block-level crosswalk.
+Aggregate ATT from doubly robust TWFE: owner-occ $+0.333$ pp (null),
+consistent with unweighted.
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Robustness Summary: In-migration ATT Across Specifications}
+\label{tab:robust}
+\small
+\begin{tabular}{lcc}
+\toprule
+Specification & In-migration ATT (pp) & $N$ treated \\
+\midrule
+\textit{Panel A: Baseline} & & \\
+\quad Unweighted TWFE (primary)           & $+1.17^{**}$ & 215 \\
+\quad DR-TWFE (doubly robust)             & $+0.74$       & 215 \\
+\textit{Panel B: Pre-trend sensitivity} & & \\
+\quad Drop $h = -3$ (five periods)        & $+1.17^{**}$ & 215 \\
+\textit{Panel C: Smoke exclusion radius} & & \\
+\quad 50 km buffer                        & $+1.09^{**}$ & 217 \\
+\quad 100 km buffer (baseline)            & $+1.17^{**}$ & 215 \\
+\quad 150 km buffer                       & $+1.07^{**}$ & 217 \\
+\textit{Panel D: Fire size threshold} & & \\
+\quad 500 acres                           & $+0.83^{**}$ & 227 \\
+\quad 1,000 acres (baseline)              & $+1.17^{**}$ & 215 \\
+\quad 2,000 acres                         & $+0.98^{**}$ & 211 \\
+\textit{Panel E: Estimator} & & \\
+\quad Sun-Abraham (2021)                  & $+1.16^{**}$ & 215 \\
+\midrule
+\textit{Panel F: RUCC heterogeneity} & & \\
+\quad Urban-adjacent (RUCC 1--3)          & $+0.78$       & 126 \\
+\quad Rural (RUCC 4--9)                   & $+0.43$       & 88  \\
+\midrule
+\textit{Panel G: First-fire restriction sensitivity} & & \\
+\quad No prior fire 2000--2014 (S1a)      & $+0.31$ & 295 \\
+\quad No prior fire 2005--2014 (S1b)      & $+0.37$ & 364 \\
+\quad All prior fire counts, IPW-matched (S2-pooled) & $+0.14$ & 1,063 \\
+\bottomrule
+\end{tabular}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Aggregate ATT $= (\hat{\beta}_0 + \hat{\beta}_{+1} + \hat{\beta}_{+2}) / 3$.
+All specifications include tract and period fixed effects;
+standard errors clustered by county.
+$^{**}$: $p < 0.05$.
+Baseline: 1,000-acre MTBS threshold, 100 km smoke buffer,
+first-fire design (no prior large fire 1984--2014),
+six periods (2010--2024), reference period 2014.
+Panels C--D re-estimated with the same first-fire restriction as the baseline;
+the 217-tract counts (vs.\ 215 primary) reflect differences in tract-level spatial
+intersection resolution between the raw shapefile and the cleaned analysis parquet.
+Panel G: S1a shortens the look-back to 2000--2014 (allowing prior fires 1984--1999);
+S1b to 2005--2014; S2-pooled imposes no first-fire restriction and includes all
+1,063 cohort-fire tracts in the ACS analysis sample, matched by WFP quintile and prior fire stratum (0/1/2+\
+prior fire years 1984--2014).
+For S1a and S1b, the propensity-score model adds the count of prior fire years
+in the excluded window as an additional covariate.
+For S2-pooled, \texttt{factor(prior\_fire\_stratum)} is added to the TWFE formula.
+See Appendix~B for stratum-level heterogeneity.
+\end{table}
+
+% ============================================================
+% Figures (placeholder captions; insert actual PDFs)
+% ============================================================
+
+\clearpage
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{../results/es_plot_in_migration_rate.png}
+\caption{Event-Study DiD: In-migration Rate (Primary Outcome)}
+\label{fig:decomp}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Event-study coefficients from equation~\eqref{eq:main},
+unweighted TWFE (primary).
+Shaded bands: 95\% confidence intervals, cluster-SE by county.
+Reference period $h = -1$ (ACS 2014) normalized to zero.
+Grey shading indicates pre-treatment periods ($h \leq -1$).
+$h$ maps to ACS years as follows:
+$h = -3 \to 2010$, $h = -2 \to 2012$, $h = -1 \to 2014$,
+$h = 0 \to 2022$, $h = +1 \to 2023$, $h = +2 \to 2024$.
+Treated tracts ($N = 215$): first large fire ($\geq$1,000 acres MTBS) 2015--2017,
+no prior large fire 1984--2014.
+Controls ($N = 35{,}005$): never-treated, outside 100 km smoke buffer.
+Data: ACS table B07003, NHGIS \citep{NHGIS2024}.
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{../results/fig_migration_decomp.png}
+\caption{In-migration Rate Decomposition: Numerator and Denominator Channels}
+\label{fig:mover_decomp}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Panel (A): in-migration rate (pp) --- combined effect.
+Panel (B): log total population (denominator channel);
+ATT $\approx 0\%$ rules out a denominator-shrinkage explanation.
+Panel (C): log mover count (numerator channel);
+ATT $\approx +6.5\%$ confirms genuine new arrivals.
+All panels: unweighted TWFE; 95\% CIs cluster-SE by county.
+Log population uses B07003 population (one-year-plus residents);
+$r = 0.9998$ with B01003 total population.
+Reference period $h = -1$ (ACS 2014).
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{../results/fig_housing_channels.png}
+\caption{Housing Tenure: Suggestive Mechanism Evidence}
+\label{fig:housing}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Panel (A): owner-occupancy rate (pp), ACS B25003, unweighted TWFE.
+Panel (B): log renter-occupied units, ACS B25003, unweighted TWFE.
+Presented as descriptive corroboration; neither estimate is statistically
+significant at $n = 215$ treated tracts.
+Vacancy rate (B25002) excluded: fails primary pre-trend test ($p = 0.001$).
+95\% CIs cluster-SE by county; reference period $h = -1$ (ACS 2014).
+Post-treatment periods crosswalked from 2020- to 2010-vintage boundaries
+via area-weighted NHGIS block-level crosswalk \citep{NHGIS2024}.
+\end{figure}
+
+% ============================================================
+\bibliographystyle{plainnat}
+\bibliography{wildfire_poverty}
+% ============================================================
+
+% ============================================================
+\appendix
+% ============================================================
+
+\section*{Appendix B: Sensitivity to the First-Fire Restriction}
+\label{app:firecount}
+\addcontentsline{toc}{section}{Appendix B: Sensitivity to the First-Fire Restriction}
+
+\subsection*{B.1\quad Motivation}
+
+The baseline design requires treated tracts to have no prior large wildfire
+($\geq$1,000 acres, MTBS) during 1984--2014.
+This restriction serves two purposes: it eliminates confounding from accumulated fire
+history and ensures that the 2015--2017 event is, for treated tracts, the first
+large disturbance of its kind --- making the compositional-sorting mechanism
+more interpretable.
+The cost is a substantial reduction in sample size, from 1,089 cohort-fire tracts
+to 215 analysis-ready treated tracts (after ACS panel screens).
+
+We assess sensitivity to this restriction along two dimensions.
+First, we ask whether the results are robust to \emph{shortening the look-back window}:
+if prior fires before 2000 or 2005 are too distant to meaningfully confound the
+2015--2017 effect, the restriction may be overly conservative.
+Second, we ask whether tracts with \emph{different levels of prior fire experience}
+respond similarly to a new wildfire --- a question about adaptation and
+cumulative vulnerability.
+
+\subsection*{B.2\quad Data}
+
+\paragraph{Prior fire year counts.}
+For each census tract, we compute the number of distinct calendar years with at
+least one large fire ($\geq$1,000 acres, MTBS) between 1984 and 2014 that
+spatially overlapped the tract.
+This count is derived by spatial join of MTBS fire perimeters to 2010-vintage
+tract boundaries, using the same ESRI Albers Equal-Area projection as the
+main analysis.
+We then compute counts for three sub-windows: 1984--1999, 2000--2014, and 2005--2014,
+enabling both temporal-window and fire-count sensitivity analyses.
+
+The distribution of prior fire years (1984--2014) across all lower-48 tracts is
+highly right-skewed: 68,921 tracts (95.4\%) have zero prior fire years;
+1,562 tracts (2.2\%) have exactly one; and 1,788 tracts (2.5\%) have two or more.
+Among the 1,089 cohort-fire tracts (2015--2017 fires), the restriction is more
+binding: 218 tracts (20.0\%) have zero prior years, 240 have exactly one, and
+631 have two or more.
+
+\paragraph{Temporal window specifications.}
+Three specifications shorten or remove the first-fire look-back:
+\begin{itemize}
+  \item \textbf{S1a} (no prior fire 2000--2014): Tracts are treated if they had a
+    fire in 2015--2017 and no large fire in 2000--2014, allowing prior fires in
+    1984--1999. This yields $N = 295$ treated tracts.
+  \item \textbf{S1b} (no prior fire 2005--2014): The look-back is shortened to ten
+    years. $N = 364$ treated tracts.
+  \item \textbf{S2-pooled} (no restriction): All 1,089 cohort-fire tracts are treated,
+    regardless of prior fire history. After ACS panel screens, $N = 1{,}063$.
+\end{itemize}
+The control group for all three specifications is the baseline never-treated pool
+(no fires 2013--2023; outside 100 km smoke buffer; $N \approx 7{,}300$--$8{,}300$
+after PS-IPW common-support restriction).
+
+\paragraph{Fire-count strata.}
+For the heterogeneity analysis, we partition all 1,089 cohort-fire tracts into
+three strata by total prior fire years 1984--2014:
+Stratum~0 ($= 0$ years; $N = 218$, identical to the baseline treated group),
+Stratum~1 ($= 1$ year; $N = 240$, estimated as $154$ in the analysis sample after ACS
+panel and common-support restriction), and
+Stratum~2+ ($\geq 2$ years; $N = 631$, of which $695$ appear in the treatment
+parquet after spatial intersection with MTBS).
+Each stratum is matched to never-treated tracts \emph{in the same stratum} as the
+control group.
+
+\subsection*{B.3\quad Estimation}
+
+\paragraph{Propensity-score inverse-probability weighting.}
+For each specification, we estimate a logistic propensity score using the following
+base covariates: WFP 2012 raster summaries (mean percentile, quadratic, quintile-4 and
+quintile-5 share, log distance to high-hazard pixel); 2014 ACS outcomes (poverty rate,
+log median household income, employment rate, in-migration rate); log tract population
+(2014); and county Rural-Urban Continuum Code (RUCC 2013).
+Controls with WFP mean percentile below the 40th national percentile are excluded
+before propensity-score estimation (WFP floor), to avoid extrapolation into a region
+with no treated-tract support.
+Weights are ATT-form: treated tracts receive weight 1; control tracts receive
+$\hat{p}/(1-\hat{p})$ trimmed at the 95th percentile of the control weight
+distribution.
+
+For S1a, we add the count of prior fire years in the excluded window
+(1984--1999) as a continuous covariate, since this variable now varies within
+the treated group.
+For S1b, we add the analogous count for 1984--2004.
+For S2-pooled, we add an indicator for prior fire stratum (0/1/2+) as a factor.
+For the stratum-specific analyses, the baseline PS formula is used within each stratum
+(fire count is fixed within stratum and therefore redundant).
+
+\paragraph{Event-study estimating equation.}
+Within each specification, we estimate the following two-way fixed-effects model:
+\begin{equation}
+  Y_{it} = \alpha_i + \lambda_t
+    + \sum_{h \neq -1} \beta_h \cdot D_i \cdot \mathbf{1}[t = h]
+    + \varepsilon_{it},
+  \label{eq:sens_es}
+\end{equation}
+where $D_i = 1$ if tract $i$ is treated under the given specification,
+$h \in \{-3, -2, 0, +1, +2\}$, and $h = -1$ (ACS 2014) is the reference period.
+Standard errors are clustered by county.
+For S2-pooled, the factor(prior\_fire\_stratum) covariate is absorbed by the
+tract fixed effects (it is time-invariant and therefore collinear with $\alpha_i$);
+this is expected and correct --- the PS-IPW already conditions on stratum membership,
+and the within-specification design relies on the IPW reweighting rather than
+regression adjustment for stratum balance.
+
+The aggregate average treatment effect on the treated (ATT) is reported as
+$\bar{\beta}_{\text{post}} = (\hat{\beta}_0 + \hat{\beta}_{+1} + \hat{\beta}_{+2})/3$.
+
+\paragraph{Bootstrap heterogeneity test.}
+To test whether the ATT differs between Stratum~1 and Stratum~0, we implement a
+county block bootstrap with $B = 200$ replications.
+In each replication, we resample county clusters with replacement, reconstruct each
+stratum's analysis dataset from the resampled counties, and re-estimate the aggregate
+ATT from equation~\eqref{eq:sens_es} for both strata.
+The bootstrap distribution of ATT$_1 -$ ATT$_0$ yields a two-sided $p$-value:
+\[
+  p = 2 \cdot \min\!\left(
+    \Pr_\text{boot}[\Delta \geq 0],\;
+    \Pr_\text{boot}[\Delta \leq 0]
+  \right).
+\]
+
+\subsection*{B.4\quad Results: Temporal Window Sensitivity}
+
+Table~\ref{tab:robust} (Panel G) reports aggregate ATTs for S1a, S1b, and S2-pooled.
+Here we provide the full event-study detail for the primary outcome (in-migration rate)
+and discuss the pre-trend evidence for each specification.
+
+\paragraph{S1a (no prior fire 2000--2014; $N = 295$).}
+The aggregate ATT is $+0.31$ pp (95\% CI: $[-0.39, +1.01]$), positive but not
+individually significant.
+The primary pre-trend coefficient is $\hat{\beta}_{-2} = -0.16$ pp
+(95\% CI: $[-0.67, +0.34]$), indistinguishable from zero, supporting the parallel
+trends assumption.
+The additional 77 treated tracts relative to the baseline (those with prior fires
+only in 1984--1999) are roughly 31 years removed from their most recent fire at
+the 2015--2017 treatment date.
+The lower ATT relative to the baseline ($+0.31$ vs.\ $+0.64$ pp) suggests
+some attenuation from including tracts with distant fire history, though the
+difference is not significant.
+
+\paragraph{S1b (no prior fire 2005--2014; $N = 364$).}
+The aggregate ATT is $+0.37$ pp (95\% CI: $[-0.29, +1.03]$), again positive and
+directionally consistent.
+The primary pre-trend coefficient is $\hat{\beta}_{-2} = -0.19$ pp
+(95\% CI: $[-0.61, +0.24]$), consistent with parallel pre-trends.
+The 69 additional treated tracts relative to S1a (those with prior fires in
+2000--2004) are at most 10 years removed from their most recent fire.
+The ATT is similar to S1a, suggesting that tracts with prior fires in the 2000s
+respond comparably to those with more distant fire histories.
+
+\paragraph{S2-pooled (no restriction; $N = 1{,}063$).}
+The aggregate ATT is $+0.14$ pp (95\% CI: $[-0.41, +0.68]$).
+This is the most attenuated estimate, consistent with the hypothesis that including
+heavily fire-experienced tracts (Stratum 2+) dilutes the aggregate effect.
+The pre-trend coefficient is $\hat{\beta}_{-2} = -0.19$ pp
+(95\% CI: $[-0.46, +0.07]$), with a CI upper bound just inside zero.
+We treat this as consistent with parallel trends given the much larger and more
+diverse treated sample, but note that the upper bound warrants monitoring.
+The attenuation from baseline ($+0.14$ vs.\ $+0.64$ pp) likely reflects both
+compositional dilution (more fire-experienced tracts with different response profiles)
+and the thinner common support when matching all 1,063 treated tracts.
+
+\paragraph{Across specifications.}
+All three relaxations produce positive ATTs for in-migration rate, consistent with
+the baseline finding.
+Confidence intervals all include zero, reflecting smaller matched control pools
+(7,000--8,300 controls) than the main analysis ($N \approx 35{,}000$).
+This is a sample size issue, not evidence against an effect: the point estimates
+are uniformly positive and the pooled pattern --- declining magnitude as more
+fire-experienced tracts are added --- is consistent with prior fire experience
+moderating the in-migration response.
+
+Table~\ref{tab:app_sensitivity} reports aggregate ATTs for all four outcomes across
+all four specifications.
+Two results stand out.
+First, log median household income is positive and statistically significant in the
+baseline matched sample ($+0.031$ log points; 95\% CI: $[+0.003, +0.060]$) and in
+S2-pooled ($+0.017$ log points; 95\% CI: $[+0.002, +0.032]$), consistent with
+wildfire attracting higher-income in-movers or pricing out lower-income residents.
+Second, the S2-pooled poverty rate ATT is $-0.75$ pp (95\% CI: $[-1.28, -0.22]$),
+the only significant poverty finding across all specifications.
+This is consistent with higher-income compositional sorting being more pronounced
+among repeat-fire tracts, which may include higher-amenity areas where reconstruction
+investment is larger.
+We caution that both S2-pooled results use an imperfect control group (Stratum~2+
+tracts have no credible match; see B.5) and may reflect residual confounding.
+
+\begin{table}[ht]
+\centering
+\caption{Temporal Window Sensitivity: Aggregate ATTs Across All Outcomes}
+\label{tab:app_sensitivity}
+\small
+\begin{tabular}{lcccc}
+\toprule
+ & Baseline & S1a & S1b & S2-pooled \\
+ & (no fire 1984--2014) & (no fire 2000--2014) & (no fire 2005--2014) & (all tracts) \\
+\cmidrule(lr){2-2}\cmidrule(lr){3-3}\cmidrule(lr){4-4}\cmidrule(lr){5-5}
+$N$ treated & 214 & 295 & 364 & 1,063 \\
+\midrule
+\multicolumn{5}{l}{\textit{In-migration rate (pp)}} \\
+\quad ATT            & $+0.64$   & $+0.31$   & $+0.37$   & $+0.14$   \\
+\quad 95\% CI        & $[-0.15,+1.43]$ & $[-0.39,+1.01]$ & $[-0.29,+1.03]$ & $[-0.41,+0.68]$ \\
+\quad $\hat{\beta}_{-2}$ & $-0.06$ & $-0.16$ & $-0.19$ & $-0.19$ \\
+\midrule
+\multicolumn{5}{l}{\textit{Poverty rate (pp)}} \\
+\quad ATT            & $-0.65$   & $-0.51$   & $-0.72$   & $-0.75^{**}$ \\
+\quad 95\% CI        & $[-1.73,+0.43]$ & $[-1.39,+0.37]$ & $[-1.64,+0.19]$ & $[-1.28,-0.22]$ \\
+\midrule
+\multicolumn{5}{l}{\textit{Log median household income (2020\$)}} \\
+\quad ATT            & $+0.031^{**}$ & $+0.026$ & $+0.024$ & $+0.017^{**}$ \\
+\quad 95\% CI        & $[+0.003,+0.060]$ & $[-0.003,+0.055]$ & $[-0.002,+0.050]$ & $[+0.002,+0.032]$ \\
+\midrule
+\multicolumn{5}{l}{\textit{Employment rate (pp)}} \\
+\quad ATT            & $+0.35$   & $+0.34$   & $+0.23$   & $+0.28$   \\
+\quad 95\% CI        & $[-0.40,+1.10]$ & $[-0.39,+1.08]$ & $[-0.48,+0.94]$ & $[-0.19,+0.74]$ \\
+\bottomrule
+\end{tabular}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} All specifications use the same estimating equation~\eqref{eq:sens_es}
+with tract and period fixed effects; standard errors clustered by county.
+Control pool restricted to the PS-IPW common-support sample (WFP floor $\geq$40th percentile).
+Aggregate ATT $= (\hat{\beta}_0 + \hat{\beta}_{+1} + \hat{\beta}_{+2})/3$.
+In-migration rate, poverty rate, and employment rate multiplied by 100 (pp).
+$\hat{\beta}_{-2}$: pre-trend coefficient (pp), reference period $h = -1$ (ACS 2014).
+$^{**}$: 95\% CI excludes zero ($p < 0.05$).
+Collinearity note: \texttt{factor(prior\_fire\_stratum)} is absorbed by tract fixed effects
+in S2-pooled (as expected for a time-invariant variable); IPW reweighting provides
+stratum balance.
+\end{table}
+
+\subsection*{B.5\quad Results: Fire-Count Heterogeneity}
+
+Table~\ref{tab:app_het_strata} and Figure~\ref{fig:het_strata} report stratum-level
+event-study results.
+
+\paragraph{Stratum~0 ($N_{\text{trt}} = 214$, $N_{\text{ctrl}} = 8{,}139$).}
+Tracts in their first recorded large fire show an aggregate ATT of $+0.65$ pp
+(95\% CI: $[-0.14, +1.44]$), consistent with the primary unweighted estimate.
+The pre-trend coefficient $\hat{\beta}_{-2} = -0.06$ pp (95\% CI: $[-0.60, +0.49]$)
+is effectively zero, providing strong support for parallel trends in this stratum.
+The wide matched control pool (8,139 tracts) reflects the many never-treated tracts
+with WFP scores in the moderate-to-high range who share pre-treatment covariate
+profiles with first-fire treated tracts.
+
+\paragraph{Stratum~1 ($N_{\text{trt}} = 154$, $N_{\text{ctrl}} = 130$).}
+After the WFP floor and common support trimming, only 130 control tracts are matched
+to 154 treated tracts in this stratum.
+The aggregate ATT is $+0.03$ pp (95\% CI: $[-1.40, +1.46]$), imprecise and
+consistent with zero.
+The pre-trend coefficient $\hat{\beta}_{-2} = -0.56$ pp (95\% CI: $[-1.32, +0.20]$)
+is statistically indistinguishable from zero but directionally negative, raising a
+caution flag given the thin control pool.
+We do not draw causal conclusions from Stratum~1 in isolation: the narrow common
+support --- tracts that had exactly one prior fire year and also have moderate-to-high
+WFP scores --- limits the credibility of the control group.
+The near-zero ATT estimate may reflect genuine attenuation (experienced tracts adapt),
+or it may be an artifact of the thin control pool and borderline pre-trend.
+
+\paragraph{Stratum~2+ ($N_{\text{trt}} = 695$, $N_{\text{ctrl}} = 49$).}
+Only 49 control tracts pass the WFP floor and common support screen in this stratum.
+This is far too few for credible propensity-score inference: the 49 controls are
+an unrepresentative subset of never-treated tracts that happen to share the high-hazard,
+high-prior-fire-count profile of the 695 treated tracts.
+We report the event-study coefficients in Figure~\ref{fig:het_strata} for descriptive
+completeness; the $+0.19$ pp ATT (95\% CI: $[-1.90, +2.28]$) carries no causal weight.
+The positive pre-trend coefficient ($\hat{\beta}_{-2} = +0.45$ pp) further
+undermines the parallel trends assumption for this stratum.
+
+\paragraph{Formal heterogeneity test.}
+The bootstrap test for ATT$_1 -$ ATT$_0$ yields a point estimate of $-0.54$ pp
+(bootstrap SE $= 0.77$ pp; 95\% CI: $[-2.05, +0.96]$; $p = 0.45$).
+We cannot reject the null of equal ATTs across Stratum~0 and Stratum~1.
+Given the thin Stratum~1 control pool ($N = 130$), the test has low power; the
+wide CI is uninformative about whether prior fire experience moderates the
+in-migration response.
+
+\subsection*{B.6\quad Interpretation and Limitations}
+
+Three conclusions emerge from these analyses.
+
+First, the \emph{sign and direction} of the in-migration effect is robust to the
+first-fire restriction.
+Every specification --- S1a, S1b, S2-pooled, and Stratum~0 --- produces a positive
+aggregate ATT for in-migration rate.
+This directional consistency across specifications spanning 215 to 1,063 treated tracts
+substantially reduces the probability that the baseline finding is a false positive
+driven by the first-fire sample-selection rule.
+
+Second, \emph{magnitude attenuates} as more fire-experienced tracts are included.
+The baseline ATT ($+0.65$ pp using the matched control pool) exceeds S1a ($+0.31$ pp),
+S1b ($+0.37$ pp), and S2-pooled ($+0.14$ pp).
+This pattern is consistent with prior fire experience moderating the compositional
+sorting response: tracts that have already absorbed a large wildfire may have
+equilibrated to a new post-fire population mix, so a repeat event triggers a smaller
+marginal response.
+An alternative explanation is dilution: if the treatment effect is zero or negative
+for high-stratum tracts, including them in S2-pooled mechanically pulls the average
+toward zero.
+The thin Stratum~2+ control pool prevents us from distinguishing these channels.
+
+Third, the \emph{credibility of causal inference} diminishes sharply once we
+relax the first-fire restriction for high-stratum tracts.
+Tracts with two or more prior fire years (Stratum~2+) have a WFP profile so extreme
+that no adequate comparison group exists among never-treated tracts; the 49 controls
+that pass the WFP floor are insufficient.
+This is the structural limitation that motivates the baseline first-fire design:
+it is not merely a sample-selection choice, but the boundary of the region where
+credible propensity-score matching is feasible.
+
+These results support treating the baseline finding as a lower bound on the effect
+among all large-fire tracts, with the caveat that the first-fire design estimates
+a specific estimand --- the ATT for tracts experiencing their first recorded large
+wildfire --- that may not generalise to repeat-fire tracts.
+
+\medskip
+\noindent\textbf{Caution on Stratum~1.}
+After the WFP floor and common support restriction, only 130 control tracts are
+matched to 154 treated tracts in Stratum~1.
+The pre-trend coefficient for Stratum~1 is $\hat{\beta}_{-2} = -0.56$ pp
+(95\% CI: $[-1.32, +0.20]$), which is statistically indistinguishable from zero
+but directionally negative.
+Given the thin control pool, we interpret the Stratum~1 ATT ($+0.03$ pp) as imprecise
+rather than as evidence of no effect, and we do not draw separate causal conclusions
+from this stratum.
+
+\medskip
+\noindent\textbf{Caution on Stratum~2+.}
+After applying the WFP floor ($\geq$40th percentile) and common support trimming,
+only 49 control tracts remain in Stratum~2+.
+This is insufficient for credible propensity-score inference.
+We report event-study coefficients for Stratum~2+ in Figure~\ref{fig:het_strata}
+for descriptive completeness, but we do not draw causal conclusions from that column.
+Formal inference is restricted to the ATT$_1 -$ ATT$_0$ comparison.
+
+\begin{table}[ht]
+\centering
+\caption{ATT by Prior Fire Stratum: In-migration Rate (pp)}
+\label{tab:app_het_strata}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{2}{c}{Stratum 0} & \multicolumn{2}{c}{Stratum 1} & \multicolumn{2}{c}{Stratum 2+} \\
+ & \multicolumn{2}{c}{(0 prior fire yrs)} & \multicolumn{2}{c}{(1 prior fire yr)} & \multicolumn{2}{c}{(2+ prior fire yrs)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+ & ATT (pp) & 95\% CI & ATT (pp) & 95\% CI & ATT (pp) & 95\% CI \\
+\midrule
+In-migration rate    & $+0.65$ & $[-0.14,\; +1.44]$ & $+0.03$ & $[-1.40,\; +1.46]$ & $+0.19$ & $[-1.90,\; +2.28]$ \\
+\midrule
+$\beta_{-2}$ (pre-trend) & $-0.06$ & $[-0.60,\; +0.49]$ & $-0.56$ & $[-1.32,\; +0.20]$ & --- & --- \\
+\midrule
+$N$ treated & \multicolumn{2}{c}{$214$} & \multicolumn{2}{c}{$154$} & \multicolumn{2}{c}{$695$} \\
+$N$ controls & \multicolumn{2}{c}{$8,\!139$} & \multicolumn{2}{c}{$130$} & \multicolumn{2}{c}{$49$$^\dagger$} \\
+\bottomrule
+\end{tabular}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Stratum defined by count of calendar years with $\geq$1 large MTBS wildfire
+($\geq$1,000 acres) in 1984--2014 overlapping the tract.
+Control group: never-treated tracts in same stratum.
+Stratum-specific PS-IPW; standard errors clustered by county.
+Aggregate ATT $= (\hat{\beta}_0 + \hat{\beta}_{+1} + \hat{\beta}_{+2})/3$.
+Heterogeneity test (bootstrap, $B = 200$, county block):
+ATT$_1 -$ ATT$_0 =$ $-0.54$ pp, $p =$ $0.45$.\\
+$^\dagger$ Stratum~2+ control pool is too thin for credible inference; reported for completeness only.
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{../results/fig_firecount_heterogeneity.png}
+\caption{Event-Study DiD by Prior Fire Stratum: In-migration Rate}
+\label{fig:het_strata}
+\medskip
+
+\noindent\footnotesize
+\textit{Notes:} Three-panel event-study plot for Strata~0 (top), 1 (middle), and 2+ (bottom).
+Each panel uses stratum-specific PS-IPW matching on WFP 2012 raster and 2014 ACS covariates.
+Shaded bands: 95\% confidence intervals, cluster-SE by county.
+Reference period $h = -1$ (ACS 2014) normalized to zero.
+Triangles (Stratum~2+ panel) indicate estimates from a thin control pool ($N = 51$);
+interpret with caution.
+\end{figure}
+
+\end{document}

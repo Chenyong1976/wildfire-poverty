@@ -1,6 +1,6 @@
 # Research Plan: Wildfire Impact on Poverty and Economic Outcomes
 
-**Last Updated**: 2026-08-15 (Data source: NHGIS time series standardized; 6-period event-study design)  
+**Last Updated**: 2026-08-16 (In-migration mechanism decomposition added; estimation complete)  
 **Principal Investigator**: [Your Name]  
 **Project Directory**: `~/wildfire-poverty-analysis/`
 
@@ -203,6 +203,25 @@ Where $h$ indexes relative time:
 | **Employment rate** | NHGIS time series standardized | B84AD / B84AC: civilian employed / civilian labor force (16+); excludes Armed Forces and persons not in labor force | Captures labor market adjustment |
 | **Net-migration rate** (mediator) | NHGIS B07003 source table (all 6 periods) | In-migration rate proxy: (total − same house 1 yr ago) / total; measures arrivals only (out-migration not observable from ACS) | Descriptive decomposition mechanism |
 
+**In-migration mechanism decomposition** — the +0.92 pp in-migration rate ATT is ambiguous: the rate = movers / population can rise from more arrivals (numerator) or from population loss (denominator). The following outcomes decompose this:
+
+| Outcome | Source | Definition | Role |
+|---------|--------|-----------|------|
+| **log(total population)** | NHGIS B01003 (already in panel) | log of total tract population | Denominator test: population loss → rate rise mechanically |
+| **log(mover count)** | NHGIS B07003 (already in panel) | log(total − same house 1 yr ago) = absolute count of movers | Numerator test: genuine increase in arrivals |
+| **Owner-occupancy rate** | NHGIS B25003 (medium priority — one ACS table) | Owner-occupied units / total occupied housing units | Compositional channel: fire displaces owners; more-mobile renters remain → rate rises mechanically |
+| **Vacancy rate** | NHGIS B25002 (medium priority — same ACS table) | Vacant units / total housing units | Housing destruction channel: destroyed units inflate vacancy and reduce resident base |
+
+**Interpretation matrix**:
+
+| log(pop) | log(movers) | Interpretation |
+|----------|-------------|----------------|
+| Negative | Near zero | Denominator effect: displacement/out-migration; no genuine inflow increase |
+| Near zero | Positive | Numerator effect: genuine arrival increase (reconstruction workers, recovery migration) |
+| Negative | Negative, smaller | Net displacement with partial inflow — decompose magnitudes |
+
+**IRS SOI county migration (optional)** — ACS cannot measure out-flows from a tract. As an optional supplement, the IRS Statistics of Income (SOI) publishes annual county-to-county migration tables from tax returns, including gross in-flows and out-flows. These are county-level (not tract-level) but directly answer the out-migration question. Link treated tracts to their counties and estimate whether county-level out-flows rose post-fire. See §4.4 for implementation notes.
+
 All outcomes available at **tract level only for 5-year estimates**. No 1-year or 3-year estimates used (rural data quality constraint). NHGIS time series standardized (S) variant is required to handle tract boundary changes across the 2010–2024 study window.
 
 ### Treatment Definition
@@ -226,6 +245,8 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 | RUCC 2013 | USDA ERS | County-level codes | ⏳ To parse from wildfire-finance |
 | Tract shapefiles (for fire-tract spatial join) | Census TIGER 2014 (NHGIS) | Shapefile | ✓ `data/raw/acs_extracts/nhgis2014Tiger/nhgis0012_shapefile_tl2014_us_tract_2014.zip` |
 | CPI-U (income deflator) | FRED series CPIAUCSL (BLS); monthly; base 1982–84=100 | CSV | ✓ `data/raw/CPIAUCSL.csv`; retrieved 2026-08-15 from https://fred.stlouisfed.org/series/CPIAUCSL; annual averages computed in build script |
+| Owner-occupancy & vacancy rates | NHGIS B25002/B25003 source tables, tract, all 6 periods | CSV (NHGIS extract) | ⏳ Medium priority — add to NHGIS extract; same extract workflow as B07003 migration tables |
+| IRS SOI county migration flows | IRS Statistics of Income, county-to-county migration tables (public, annual) | CSV | ⏳ Optional — gross in/out county flows; download from IRS.gov SOI tax stats; county-level only |
 
 ### Data Quality Screening
 
@@ -282,6 +303,40 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 
 **Scripts**: `code/03_analysis/03_mediation.R`, `04_robustness.R`, `05_heterogeneity.R`
 
+### Phase 4.4: In-migration Mechanism Decomposition (after main estimation)
+
+The primary result is a +0.92 pp in-migration rate ATT. The rate = movers / population, so this could reflect more arrivals, fewer residents, or both. This phase decomposes the effect and documents channels.
+
+**Priority 1 — Immediate (no new data)**: Both components are already in the ACS panel via B07003/B01003.
+
+Add to `code/03_analysis/01_did_estimation.py`:
+```python
+# Derive from existing B07003 columns
+panel["log_pop"] = np.log(panel["total_pop"].clip(lower=1))
+panel["log_mover_count"] = np.log((panel["total_pop"] - panel["same_house"]).clip(lower=1))
+```
+Estimate the TWFE event study on `log_pop` and `log_mover_count` alongside existing outcomes. Interpret the coefficients jointly using the matrix in §3.
+
+**Priority 2 — Medium (one ACS table)**: Request B25002 (vacancy status) and B25003 (tenure) from NHGIS for the same 6 periods as the B07003 extraction. Compute:
+```python
+panel["owner_occ_rate"] = owner_occupied / total_occupied   # from B25003
+panel["vacancy_rate"]   = vacant / total_housing_units      # from B25002
+```
+Estimate TWFE event study on both. Owner-occupancy decline + vacancy increase → housing destruction / compositional sorting channel. Target: add to `code/01_build/01_acs_nhgis_load.py` during next NHGIS extract.
+
+**Priority 3 — Optional (new data source)**: IRS Statistics of Income county-to-county migration tables provide annual gross in-flows and out-flows by county from tax returns. Steps:
+1. Download county migration files from IRS.gov SOI (public; available ~2 years after tax year).
+2. Identify counties containing treated tracts.
+3. Estimate DiD on county-level out-flow rates using the same fire cohort (2015–2017). Note: county-level analysis sacrifices within-county variation; treat as supplementary evidence only.
+4. Script: `code/03_analysis/05_irs_outmigration.py` (create when data available).
+
+**Deliverables for this phase**:
+- Updated `results/event_study_coefs.csv` with `log_pop` and `log_mover_count` coefficients
+- Figure: three-panel event study (in_migration_rate, log_pop, log_mover_count) displayed together
+- Table (decomposition): ATT for all three with interpretation
+- If B25002/B25003 extracted: two additional event-study plots (owner-occupancy, vacancy)
+- If IRS SOI obtained: county-level out-migration robustness table
+
 ### Phase 5: Output Generation & Visualization (Week 8)
 
 **Deliverables**:
@@ -318,13 +373,17 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 - **Table 1b**: Post-treatment balance (post-IPW): SMD, ESS
 - **Table 2**: Threats to identification (summary)
 - **Table 3**: Main ATT estimates (all 4 outcomes, point + CI)
-- **Table 4**: Descriptive decomposition via net migration
+- **Table 4**: In-migration mechanism decomposition — ATT on in_migration_rate, log_pop, log_mover_count side by side; joint interpretation of numerator vs. denominator
+- **Table 4a** *(medium priority)*: Housing channel — ATT on owner-occupancy rate and vacancy rate; requires B25002/B25003 extraction
 - **Table 5**: Heterogeneous effects (by poverty quintile, region, WFP hazard)
 - **Table 6**: Robustness summary (smoke radius, MOE threshold, fire threshold, estimator, regional FE, etc.)
+- **Table 7** *(optional)*: IRS SOI county out-migration robustness — requires separate data pull
 - **Figure 1**: Geographic map (fires, treated tracts, smoke buffer)
-- **Figure 2**: Event-study plot (poverty, primary outcome) — h ∈ {−1, 0, +1}
+- **Figure 2**: Event-study plot (poverty, primary outcome) — h ∈ {−3, −2, 0, +1, +2}
 - **Figure 3**: Event-study plot (income, secondary outcome)
-- **Figure 4**: Propensity-score density (treated vs. control, pre/post IPW)
+- **Figure 4**: Three-panel event study — in_migration_rate, log_pop, log_mover_count (mechanism decomposition)
+- **Figure 5** *(medium priority)*: Two-panel event study — owner-occupancy rate, vacancy rate
+- **Figure 6**: Propensity-score density (treated vs. control, pre/post IPW)
 
 ---
 
@@ -403,13 +462,22 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 
 ## 11. Project Status
 
+**Estimation complete as of 2026-08-16. Primary result: in-migration rate ATT = +0.92 pp (robust through HonestDiD M=1.5). Income and poverty effects not significant after smoke buffer correction.**
+
 - ✓ Research design finalized (single clean cohort)
 - ✓ Identification strategy locked in
-- ✓ Data sources identified
-- ⏳ Data acquisition pending (ACS download, RUCC parsing)
-- ⏳ Analysis scripts staged (code/01_build through code/04_output)
-- ⏳ PAP registration pending data completion
-- ⏳ Estimation to follow PAP registration
+- ✓ Data acquired and pipeline built (`code/01_build/` through `code/04_output/`)
+- ✓ Smoke buffer bug fixed (`02_fire_treatment.py`): never-treated 70,146 → 36,013 after correct 100km exclusion
+- ✓ Main DiD estimated (`code/03_analysis/01_did_estimation.py`): ATTs for all 4 outcomes
+- ✓ Pre-trend tests run (`code/03_analysis/02_pretrend_tests.py`): income/poverty/migration PASS; employment FAIL (downgraded to robustness appendix)
+- ✓ Robustness estimated (`code/03_analysis/03_robust_tests.R`): DR-TWFE, HonestDiD; in-migration breakdown M=1.5
+- ✓ Buffer × fire-size robustness (`code/03_analysis/04_robustness_specs.py`): Table 4 produced
+- ✓ Tables and figures generated (`code/04_output/01_tables_figures.py`): Table2/3, Figures 1–7
+- ⏳ **Next — Immediate**: Add `log_pop` and `log_mover_count` to `01_did_estimation.py`; estimate and add to Figure 4 (three-panel decomposition)
+- ⏳ **Next — Medium**: Request B25002/B25003 from NHGIS; add `owner_occ_rate` and `vacancy_rate` to panel; estimate and produce Figure 5
+- ⏳ **Next — Optional**: Download IRS SOI county migration tables; implement `code/03_analysis/05_irs_outmigration.py`
+- ⏳ PAP registration (note: estimation is already complete; registration now serves as documentation of pre-specified design)
+- ⏳ Paper writing: Introduction through Discussion not yet drafted; skill sequence: `/deep-research` → `/academic-paper` → `/academic-paper-reviewer`
 
 ---
 
