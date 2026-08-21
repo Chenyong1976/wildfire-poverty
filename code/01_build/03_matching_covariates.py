@@ -11,15 +11,11 @@ computed for each vintage and all three are reported in the balance table:
   (2) % tract area in each hazard quintile (Q1–Q5)
   (3) distance (km) from tract centroid to nearest pixel > 75th pct
 
-WFP 2014 data source: USFS LANDFIRE — download from:
-  https://www.landfire.gov/version_comparison.php  (product: WHP 2014, ESRI Grid)
-  Expected local path: data/raw/whp_rasters/whp2014_cnt  (EPSG:5070, 270 m)
-  If WFP 2014 is unavailable, set WFP_2014_FILE = WFP_2012_FILE to use 2012 as
-  a placeholder and note the substitution in the paper.
+WFP 2014 data source: USFS LANDFIRE — confirmed present locally.
 
 Inputs:
-  data/raw/whp_rasters/whp2014_cnt                WFP 2014 ESRI Grid (EPSG:5070) [primary]
-  data/raw/whp_rasters/wfp2012_cnt                WFP 2012 ESRI Grid (EPSG:5070) [robustness]
+  data/raw/whp_rasters/whp_2014_continuous/whp2014_cnt   WFP 2014 ESRI Grid (EPSG:5070) [primary]
+  data/raw/whp_rasters/wfp2012_cnt                       WFP 2012 ESRI Grid (EPSG:5070) [robustness]
   data/raw/mtbs_perimeters/S_USA.MTBS_BURN_AREA_BOUNDARY.shp
   data/raw/tract_shapefiles/.../US_tract_2010.shp
   data/raw/rucc/ruralurbancodes2013.xls
@@ -60,9 +56,8 @@ RAW = ROOT / "data" / "raw"
 PROCESSED = ROOT / "data" / "processed"
 
 # WFP 2014: primary matching covariate (predetermined before 2015 fire season).
-# Download from USFS LANDFIRE before running this script.
-WFP_2014_FILE = RAW / "whp_rasters" / "whp2014_cnt"
-# WFP 2012: robustness check; reuse from wildfire-finance symlink.
+WFP_2014_FILE = RAW / "whp_rasters" / "whp_2014_continuous" / "whp2014_cnt"
+# WFP 2012: robustness check.
 WFP_2012_FILE = RAW / "whp_rasters" / "wfp2012_cnt"
 # Alias for backward-compatible internal calls
 WFP_FILE = WFP_2014_FILE
@@ -403,10 +398,8 @@ def main() -> None:
     print("─" * 60)
     if not WFP_2014_FILE.exists():
         raise FileNotFoundError(
-            f"WFP 2014 raster not found at {WFP_2014_FILE}.\n"
-            "Download from USFS LANDFIRE (WHP 2014, ESRI Grid) and place at\n"
-            f"  {WFP_2014_FILE}\n"
-            "or symlink to an existing download."
+            f"WFP 2014 raster not found at {WFP_2014_FILE}. "
+            "Check that whp_2014_continuous/whp2014_cnt exists under data/raw/whp_rasters/."
         )
     wfp14_df = _compute_wfp_summaries(
         tracts_5070, WFP_2014_FILE, label="WFP 2014", prefix="wfp_"

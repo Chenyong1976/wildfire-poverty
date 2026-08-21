@@ -270,7 +270,7 @@ All outcomes available at **tract level only for 5-year estimates**. No 1-year o
 | Poverty, income, employment | NHGIS time series **nominal (N)**, tract — only ACS option (standardized S not available for ACS at tract level) | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_inc_pov_emp/nhgis0012_ts_nominal_tract.csv` |
 | Net migration proxy | NHGIS B07003 source table, tract, all 6 periods | CSV (NHGIS extract) | ✓ `data/raw/acs_extracts/nhgis_mig/nhgis0013_ds*_tract.csv` (6 files) |
 | Fire perimeters & treatment assignment | MTBS (USGS) | Shapefile | ✓ Linked from wildfire-finance |
-| WFP 2014 (**primary matching**) | USFS LANDFIRE | 270m raster, EPSG:5070; predetermined before 2015 fire season | ⏳ Download from USFS LANDFIRE; compute tract summaries (mean percentile, quintile shares, distance to high-hazard pixel) |
+| WFP 2014 (**primary matching**) | USFS LANDFIRE | 270m raster, EPSG:5070; predetermined before 2015 fire season | ✓ `data/raw/whp_rasters/whp_2014_continuous/whp2014_cnt` (confirmed present); compute tract summaries via `03_matching_covariates.py` |
 | WFP 2012 (robustness check) | USFS LANDFIRE | 270m raster, EPSG:5070 | ✓ Linked from wildfire-finance; compute same three tract-level summaries for sensitivity specs |
 | Pre-2013 fire history | MTBS 1984–2012 | Shapefile | ✓ Linked from wildfire-finance |
 | RUCC 2013 | USDA ERS | County-level codes | ⏳ To parse from wildfire-finance |
@@ -511,7 +511,8 @@ Estimate TWFE event study on both. Owner-occupancy decline + vacancy increase �
 - ✓ Code updated for 7-point design revision: `03_matching_covariates.py`, `01_ipw_weights.py`, new `03_cem_matching.R`, `01_tables_figures.py`
 
 ### Pending — Critical (must run before final results)
-- ⏳ **WFP 2014 data acquisition**: Download WFP 2014 raster from USFS LANDFIRE; place at `data/raw/whp_rasters/whp2014_cnt`; re-run `03_matching_covariates.py` to produce primary matching covariates
+- ✓ **WFP 2014 data**: Confirmed at `data/raw/whp_rasters/whp_2014_continuous/whp2014_cnt` (WHP 2018 also present for future robustness)
+- ⏳ **Re-run `03_matching_covariates.py`**: Produces WFP 2014 primary summaries + WFP 2012 robustness columns
 - ⏳ **Re-run matching**: `code/02_matching/01_ipw_weights.py` (PS caliper v3); verify normalized difference < 0.25 post-caliper; inspect balance table (all three WFP summaries + RUCC)
 - ⏳ **CEM matching**: `code/02_matching/03_cem_matching.R`; compare CEM-OLS ATT to IPW-TWFE; add CEM column to Table 3
 - ⏳ **Re-run DiD and robustness** with new IPW weights; update Table 2 and event-study figures
