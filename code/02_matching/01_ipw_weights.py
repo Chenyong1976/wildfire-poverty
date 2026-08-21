@@ -1,41 +1,40 @@
 """
 Propensity-score inverse-probability weighting for ATT estimation.
 
-v2 changes from v1:
-  1. Hard WFP floor: restrict controls to wfp_mean_pct >= WFP_CTRL_FLOOR (40).
-     Treated tracts have mean WFP percentile 68.7; low-WFP controls are off the
-     common support and cause extreme IPW weights that cannot be trimmed away.
-  2. Revised PS formula:
-     - Drop fire_pre2013 / log_acres_pre2013: cause near-perfect separation
-       (treated=79% prior-fire; controls=9%). WFP 2012 already captures long-run
-       fire risk, making fire history partially collinear and destabilising.
-     - Drop wfp_q2_frac / wfp_q3_frac: near-zero for treated tracts in the
-       WFP-restricted sample; degenerate in logistic model.
-     - Replace raw wfp_dist_km with log(wfp_dist_km + 0.01): right-skewed.
-     - Add wfp_mean_pct^2: nonlinear WFP dose-response in the high-WFP range.
-  3. Trim control weights at 95th percentile (from 99th).
+Design changes from v2:
+  1. WFP 2014 raster summaries replace WFP 2012 as primary matching covariate.
+  2. PS caliper (0.20 SDs of treated PS) replaces hard WFP floor for common-support
+     restriction.  Rationale: normalized difference in mean WFP 2014 = 0.43, above
+     the Imbens (2015) threshold of 0.25; caliper trims the off-support tail of
+     controls without discarding by an arbitrary absolute threshold.
+  3. Balance table now reports all three WFP 2014 summaries (mean_pct, all five
+     quintile fracs Q1–Q5, dist_km), plus WFP 2012 mean as robustness column.
+  4. CEM matching added: coarsen WFP 2014 quintile → exact match → OLS.
+     See compute_cem_weights() below.
 
-Model (v2):
+PS model (v3):
   treated ~ wfp_mean_pct + wfp_mean_pct2
           + wfp_q4_frac + wfp_q5_frac + log_wfp_dist_km
           + pov_rate_2014 + log_inc_2014 + emp_rate_2014 + log_pop_2014
           + mig_rate_2014 + C(rucc_2013)
 
-  Sample: treated + (never_treated with wfp_mean_pct >= WFP_CTRL_FLOOR).
+  (Q1–Q3 fracs omitted from PS formula: near-zero variation in the high-WFP
+  caliper-restricted sample; all five are reported in the balance table.)
 
 Weights (ATT):
-  treated = 1         ->  w = 1
-  never_treated = 1   ->  w = p̂ / (1 - p̂), trimmed at 95th pct of controls.
+  treated = 1         -> w = 1
+  never_treated = 1   -> w = p̂ / (1 - p̂), trimmed at 95th pct of controls.
 
 Inputs:
   data/processed/matching_covariates.parquet
   data/processed/fire_treatment_tracts.parquet
 
 Outputs:
-  data/processed/ipw_weights.parquet       GISJOIN + treated + ps + ipw_weight
-  results/balance_table.csv                SMD before/after per covariate
-  results/ps_overlap.png                   Propensity score density overlay
-  results/matching_log.txt                 Full diagnostic log
+  data/processed/ipw_weights.parquet          GISJOIN + treated + ps + ipw_weight
+  data/processed/cem_weights.parquet          GISJOIN + treated + cem_weight + cem_cell
+  results/balance_table.csv                   SMD before/after for all covariates
+  results/ps_overlap.png                      Propensity score density overlay
+  results/matching_log.txt                    Full diagnostic log
 """
 
 import sys
@@ -59,22 +58,14 @@ RESULTS = ROOT / "results"
 
 TS_FILE = ROOT / "data" / "raw" / "acs_extracts" / "nhgis_inc_pov_emp" / "nhgis0012_ts_nominal_tract.csv"
 
-# Hard WFP floor for controls: restricts to fire-prone tracts comparable to treated.
-# Treated mean = 68.7; 40 corresponds to the bottom of the 3rd quintile nationally.
-WFP_CTRL_FLOOR = 40.0
+# PS caliper: ±CALIPER_SD standard deviations of the treated propensity-score distribution.
+# Cochran & Rubin (1973) recommend 0.20 SDs; Imbens & Rubin (2015) p. 297 use 0.20.
+CALIPER_SD = 0.20
 
-# Trim weight percentile (95th, down from 99th in v1)
+# Weight trimming percentile (controls only)
 TRIM_PCT = 0.95
 
-# Covariates for PS formula — fire history dropped; log_wfp_dist_km replaces wfp_dist_km
-PS_COVARS = [
-    "wfp_mean_pct", "wfp_mean_pct2",
-    "wfp_q4_frac", "wfp_q5_frac",
-    "log_wfp_dist_km",
-    "pov_rate_2014", "log_inc_2014", "emp_rate_2014", "log_pop_2014",
-    "mig_rate_2014",
-]
-
+# Covariates in the PS logit formula
 PS_FORMULA = (
     "treated ~ wfp_mean_pct + wfp_mean_pct2"
     " + wfp_q4_frac + wfp_q5_frac + log_wfp_dist_km"
@@ -82,16 +73,34 @@ PS_FORMULA = (
     " + mig_rate_2014 + C(rucc_2013)"
 )
 
-# Covariates to report in balance table (broader than PS model, includes dropped vars)
+# All covariates reported in the balance table (broader than PS formula)
+# Includes all three WFP 2014 summaries and WFP 2012 mean as robustness column
 BALANCE_COVARS = [
+    # WFP 2014 — primary matching variable (all three summaries)
     "wfp_mean_pct",
-    "wfp_q4_frac", "wfp_q5_frac",
+    "wfp_q1_frac", "wfp_q2_frac", "wfp_q3_frac", "wfp_q4_frac", "wfp_q5_frac",
     "log_wfp_dist_km",
+    # WFP 2012 — robustness check (mean only)
+    "wfp12_mean_pct",
+    # Pre-2013 fire history
     "fire_pre2013", "log_acres_pre2013",
+    # ACS 2014 socioeconomic covariates
     "pov_rate_2014", "log_inc_2014", "emp_rate_2014", "log_pop_2014",
     "mig_rate_2014",
+    # RUCC (reported as numeric for SMD; enters PS model as factor)
+    "rucc_2013",
 ]
 
+# Covariates in PS formula (subset of BALANCE_COVARS; used to mark "In model" column)
+PS_COVARS = {
+    "wfp_mean_pct", "wfp_mean_pct2",
+    "wfp_q4_frac", "wfp_q5_frac", "log_wfp_dist_km",
+    "pov_rate_2014", "log_inc_2014", "emp_rate_2014", "log_pop_2014",
+    "mig_rate_2014", "rucc_2013",
+}
+
+
+# ── Data loading ──────────────────────────────────────────────────────────────
 
 def load_data() -> pd.DataFrame:
     covs = pd.read_parquet(PROCESSED / "matching_covariates.parquet")
@@ -103,7 +112,7 @@ def load_data() -> pd.DataFrame:
     df = covs.merge(fire, on="GISJOIN", how="inner")
     df = df[(df["treated"] == 1) | (df["never_treated"] == 1)].copy()
 
-    # Population from raw nominal TS (not forwarded to parquet in v1)
+    # Population from raw nominal TS
     ts_pop = pd.read_csv(
         TS_FILE, usecols=["NHGISCODE", "YEAR", "AV0AA"], low_memory=False
     )
@@ -121,34 +130,31 @@ def load_data() -> pd.DataFrame:
     n_treated = (df["treated"] == 1).sum()
     n_ctrl    = (df["treated"] == 0).sum()
     print(f"  Full sample: {n_treated:,} treated + {n_ctrl:,} controls")
+
+    # Report normalized difference in WFP 2014 before any trimming
+    t_wfp = df.loc[df["treated"] == 1, "wfp_mean_pct"]
+    c_wfp = df.loc[df["treated"] == 0, "wfp_mean_pct"]
+    nd = (t_wfp.mean() - c_wfp.mean()) / t_wfp.std()
+    print(f"  Normalized difference (mean WFP 2014, pre-trimming): {nd:.3f}"
+          f"  {'[HIGH: caliper will address]' if abs(nd) > 0.25 else '[OK]'}")
     return df
 
 
-def apply_wfp_floor(df: pd.DataFrame) -> pd.DataFrame:
-    """Restrict controls to wfp_mean_pct >= WFP_CTRL_FLOOR; retain all treated."""
-    n_ctrl_before = (df["treated"] == 0).sum()
-    mask = (df["treated"] == 1) | (df["wfp_mean_pct"] >= WFP_CTRL_FLOOR)
-    df_r = df[mask].copy()
-    n_ctrl_after = (df_r["treated"] == 0).sum()
-    n_dropped = n_ctrl_before - n_ctrl_after
-    print(f"\nWFP floor (wfp_mean_pct >= {WFP_CTRL_FLOOR}):")
-    print(f"  Controls dropped:  {n_dropped:,} ({100*n_dropped/n_ctrl_before:.1f}%)")
-    print(f"  Controls retained: {n_ctrl_after:,}")
-    return df_r
-
+# ── PS caliper ────────────────────────────────────────────────────────────────
 
 def drop_missing_ps(df: pd.DataFrame) -> pd.DataFrame:
-    needed = PS_COVARS + ["treated"]
-    missing = df[needed].isna().sum()
+    needed = list(PS_COVARS - {"wfp_mean_pct2", "rucc_2013"}) + ["wfp_mean_pct2", "rucc_2013", "treated"]
+    missing = df[[c for c in needed if c in df.columns]].isna().sum()
     if missing.any():
         print("[WARNING] Missing PS covariates:")
         print(missing[missing > 0])
-        df = df.dropna(subset=[c for c in needed if c != "treated"]).copy()
+        drop_cols = [c for c in needed if c in df.columns and c != "treated"]
+        df = df.dropna(subset=drop_cols).copy()
     return df
 
 
 def fit_ps_model(df: pd.DataFrame):
-    print("\nFitting logistic PS model (v2 formula) ...")
+    print("\nFitting logistic PS model ...")
     model = smf.logit(PS_FORMULA, data=df).fit(maxiter=300, disp=False)
     print(f"  Converged:   {model.mle_retvals['converged']}")
     print(f"  Log-lik:     {model.llf:.1f}  |  Pseudo-R²: {model.prsquared:.3f}")
@@ -156,56 +162,68 @@ def fit_ps_model(df: pd.DataFrame):
     return model
 
 
-def compute_weights(df: pd.DataFrame, ps: pd.Series) -> pd.DataFrame:
-    df = df.copy()
-    df["ps"] = ps.values
+def apply_ps_caliper(df: pd.DataFrame, caliper_sd: float = CALIPER_SD) -> pd.DataFrame:
+    """
+    Two-pass PS caliper following Cochran & Rubin (1973):
+      Pass 1: Estimate initial PS on full sample.
+      Pass 2: Drop controls outside [ps_min_treated - c, ps_max_treated + c]
+              where c = caliper_sd * SD(ps_treated).  Re-estimate PS on trimmed sample.
 
-    df["ipw_raw"] = np.where(
-        df["treated"] == 1,
-        1.0,
-        df["ps"] / (1.0 - df["ps"]),
-    )
+    Reports number of controls dropped and resulting ESS.
+    """
+    print(f"\nPS caliper trimming (±{caliper_sd} SD of treated PS) ...")
 
-    p_trim = df.loc[df["treated"] == 0, "ipw_raw"].quantile(TRIM_PCT)
-    df["ipw_weight"] = np.where(
-        df["treated"] == 1, 1.0, df["ipw_raw"].clip(upper=p_trim)
-    )
-
-    w_ctrl = df.loc[df["treated"] == 0, "ipw_weight"]
-    ess = w_ctrl.sum() ** 2 / (w_ctrl ** 2).sum()
-
-    print(f"\nIPW weight summary (controls, trimmed at p{int(TRIM_PCT*100)}={p_trim:.3f}):")
-    print(f"  Min:    {w_ctrl.min():.4f}")
-    print(f"  Median: {w_ctrl.median():.4f}")
-    print(f"  Mean:   {w_ctrl.mean():.4f}")
-    print(f"  Max:    {w_ctrl.max():.4f}")
-    print(f"  ESS:    {ess:,.0f} ({100*ess/len(w_ctrl):.1f}% of {len(w_ctrl):,} controls)")
-    return df
-
-
-def common_support_trim(df: pd.DataFrame) -> pd.DataFrame:
-    """Drop controls below the minimum PS of treated; re-estimate PS on restricted sample."""
-    print("\nStep 1: Initial PS for common-support restriction ...")
+    # Pass 1
+    print("  Pass 1: Initial PS on full sample ...")
     m0 = fit_ps_model(df)
     ps0 = m0.predict(df)
     df = df.copy()
     df["ps_init"] = ps0.values
 
-    ps_min_t = df.loc[df["treated"] == 1, "ps_init"].min()
-    n_before  = (df["treated"] == 0).sum()
-    off       = (df["treated"] == 0) & (df["ps_init"] < ps_min_t)
-    df_cs     = df[~off | (df["treated"] == 1)].copy()
-    n_after   = (df_cs["treated"] == 0).sum()
-    print(f"  PS range of treated: [{ps_min_t:.4f}, "
-          f"{df.loc[df['treated']==1,'ps_init'].max():.4f}]")
-    print(f"  Off-support controls dropped: {off.sum():,} ({100*off.sum()/n_before:.1f}%)")
-    print(f"  Controls retained: {n_after:,}")
+    t_ps    = df.loc[df["treated"] == 1, "ps_init"]
+    caliper = caliper_sd * t_ps.std()
+    lo      = t_ps.min() - caliper
+    hi      = t_ps.max() + caliper
 
-    print("\nStep 2: Re-estimate PS on common-support sample ...")
-    m1 = fit_ps_model(df_cs)
-    ps1 = m1.predict(df_cs)
-    return compute_weights(df_cs, ps1)
+    n_ctrl_before = (df["treated"] == 0).sum()
+    off = (df["treated"] == 0) & ((df["ps_init"] < lo) | (df["ps_init"] > hi))
+    df_trimmed = df[~off | (df["treated"] == 1)].copy()
+    n_ctrl_after = (df_trimmed["treated"] == 0).sum()
 
+    print(f"  Caliper width: [{lo:.4f}, {hi:.4f}]")
+    print(f"  Controls dropped: {off.sum():,} ({100*off.sum()/n_ctrl_before:.1f}%)")
+    print(f"  Controls retained: {n_ctrl_after:,}")
+
+    # Pass 2: Re-estimate PS on trimmed sample
+    print("  Pass 2: Re-estimate PS on caliper-trimmed sample ...")
+    m1 = fit_ps_model(df_trimmed)
+    ps1 = m1.predict(df_trimmed)
+    df_trimmed = df_trimmed.copy()
+    df_trimmed["ps"] = ps1.values
+
+    # Compute IPW weights
+    df_trimmed["ipw_raw"] = np.where(
+        df_trimmed["treated"] == 1,
+        1.0,
+        df_trimmed["ps"] / (1.0 - df_trimmed["ps"]),
+    )
+    p_trim = df_trimmed.loc[df_trimmed["treated"] == 0, "ipw_raw"].quantile(TRIM_PCT)
+    df_trimmed["ipw_weight"] = np.where(
+        df_trimmed["treated"] == 1, 1.0, df_trimmed["ipw_raw"].clip(upper=p_trim)
+    )
+
+    w_ctrl = df_trimmed.loc[df_trimmed["treated"] == 0, "ipw_weight"]
+    ess = w_ctrl.sum() ** 2 / (w_ctrl ** 2).sum()
+    print(f"\n  IPW weight summary (controls, trimmed at p{int(TRIM_PCT*100)}={p_trim:.3f}):")
+    print(f"    Min:    {w_ctrl.min():.4f}")
+    print(f"    Median: {w_ctrl.median():.4f}")
+    print(f"    Max:    {w_ctrl.max():.4f}")
+    print(f"    ESS:    {ess:,.0f} ({100*ess/len(w_ctrl):.1f}% of {len(w_ctrl):,} controls)")
+
+    return df_trimmed
+
+
+# ── Balance diagnostics ───────────────────────────────────────────────────────
 
 def smd(tv: np.ndarray, cv: np.ndarray, wts: np.ndarray | None = None) -> float:
     t_mean = np.nanmean(tv)
@@ -231,13 +249,15 @@ def balance_table(df: pd.DataFrame) -> pd.DataFrame:
             continue
         tv = t[col].values
         cv = c[col].values
+        in_model = col in PS_COVARS or col.replace("log_", "") in PS_COVARS
         rows.append({
-            "covariate":    col,
-            "mean_treated": np.nanmean(tv),
-            "mean_ctrl_raw": np.nanmean(cv),
-            "mean_ctrl_wtd": np.average(cv[~np.isnan(cv)], weights=w[~np.isnan(cv)]),
-            "smd_before":   smd(tv, cv),
-            "smd_after":    smd(tv, cv, w),
+            "covariate":      col,
+            "in_ps_model":    "yes" if in_model else "no (reported)",
+            "mean_treated":   np.nanmean(tv),
+            "mean_ctrl_raw":  np.nanmean(cv),
+            "mean_ctrl_wtd":  np.average(cv[~np.isnan(cv)], weights=w[~np.isnan(cv)]),
+            "smd_before":     smd(tv, cv),
+            "smd_after":      smd(tv, cv, w),
         })
 
     bal = pd.DataFrame(rows)
@@ -246,22 +266,76 @@ def balance_table(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def print_balance(bal: pd.DataFrame) -> None:
-    in_model = set(PS_COVARS)
-    print("\n─── Covariate Balance ───────────────────────────────────────────────")
-    print(f"  {'Covariate':<26} {'In model':>8} {'SMD before':>10} {'SMD after':>10} {'Status':>8}")
-    print(f"  {'-'*26} {'-'*8} {'-'*10} {'-'*10} {'-'*8}")
+    print("\n─── Covariate Balance ───────────────────────────────────────────────────")
+    print(f"  {'Covariate':<28} {'In PS':>6} {'SMD bef':>9} {'SMD aft':>9} {'Status':>8}")
+    print(f"  {'-'*28} {'-'*6} {'-'*9} {'-'*9} {'-'*8}")
     for _, row in bal.iterrows():
-        in_m = "yes" if row["covariate"] in in_model else "no (report)"
         flag = "[OK]" if row["balanced"] else "[!!]"
-        print(f"  {row['covariate']:<26} {in_m:>8} {row['smd_before']:>10.3f} "
-              f"{row['smd_after']:>10.3f} {flag:>8}")
-    n_model_ok = bal[bal["covariate"].isin(in_model)]["balanced"].sum()
-    n_model    = bal["covariate"].isin(in_model).sum()
-    print(f"\n  Balanced (|SMD|<0.1): {bal['balanced'].sum()}/{len(bal)} total; "
-          f"{n_model_ok}/{n_model} PS-model covariates")
+        print(f"  {row['covariate']:<28} {row['in_ps_model']:>6} "
+              f"{row['smd_before']:>9.3f} {row['smd_after']:>9.3f} {flag:>8}")
+    n_ok  = bal["balanced"].sum()
     worst = bal.loc[bal["smd_after"].abs().idxmax()]
+    print(f"\n  Balanced (|SMD|<0.1): {n_ok}/{len(bal)} covariates")
     print(f"  Worst post-weighting SMD: {worst['covariate']} = {worst['smd_after']:.3f}")
 
+
+# ── CEM matching ─────────────────────────────────────────────────────────────
+
+def compute_cem_weights(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Coarsened exact matching on WFP 2014 quintile × pre-2013 fire history.
+
+    Matching cell: (wfp_quintile [1-5]) × (fire_pre2013 [0/1]) = 10 cells max.
+    Each treated tract is matched to all controls in the same cell; unmatched
+    cells (no controls or no treated) are dropped.
+
+    Returns a DataFrame with GISJOIN, treated, cem_weight, cem_cell.
+    cem_weight for treated = 1; for controls = n_treated_in_cell / n_ctrl_in_cell.
+    This produces balance on the coarsened dimensions exactly.
+    """
+    print("\n─── CEM Matching ────────────────────────────────────────────────────────")
+    df = df.copy()
+
+    # Assign WFP 2014 quintile (1–5 based on national wfp_mean_pct distribution)
+    df["wfp_quintile"] = pd.qcut(
+        df["wfp_mean_pct"], q=5, labels=[1, 2, 3, 4, 5]
+    ).astype(int)
+
+    df["cem_cell"] = (
+        df["wfp_quintile"].astype(str) + "_fire" + df["fire_pre2013"].astype(int).astype(str)
+    )
+
+    rows = []
+    for cell, grp in df.groupby("cem_cell"):
+        n_t = (grp["treated"] == 1).sum()
+        n_c = (grp["treated"] == 0).sum()
+        if n_t == 0 or n_c == 0:
+            continue
+        ctrl_weight = n_t / n_c
+        for _, row in grp.iterrows():
+            w = 1.0 if row["treated"] == 1 else ctrl_weight
+            rows.append({"GISJOIN": row["GISJOIN"], "treated": row["treated"],
+                         "cem_weight": w, "cem_cell": cell})
+
+    cem = pd.DataFrame(rows)
+    n_t_matched = (cem["treated"] == 1).sum()
+    n_c_matched = (cem["treated"] == 0).sum()
+    n_t_total   = (df["treated"] == 1).sum()
+    n_c_total   = (df["treated"] == 0).sum()
+    print(f"  Cells with matched treated+controls: {cem['cem_cell'].nunique()}")
+    print(f"  Treated retained: {n_t_matched:,} / {n_t_total:,} ({100*n_t_matched/n_t_total:.1f}%)")
+    print(f"  Controls retained: {n_c_matched:,} / {n_c_total:,} ({100*n_c_matched/n_c_total:.1f}%)")
+
+    # Within-cell SMD on wfp_mean_pct (should be near 0 since Q1–Q5 exactly matched)
+    cem_full = df.merge(cem[["GISJOIN", "cem_weight", "cem_cell"]], on="GISJOIN", how="inner")
+    t_wfp = cem_full.loc[cem_full["treated"] == 1, "wfp_mean_pct"].values
+    c_wfp = cem_full.loc[cem_full["treated"] == 0, "wfp_mean_pct"].values
+    c_wgt = cem_full.loc[cem_full["treated"] == 0, "cem_weight"].values
+    print(f"  Post-CEM SMD (mean WFP 2014): {smd(t_wfp, c_wfp, c_wgt):.3f}")
+    return cem
+
+
+# ── PS overlap plot ───────────────────────────────────────────────────────────
 
 def ps_overlap_plot(df: pd.DataFrame, out_path: Path) -> None:
     t_ps = df.loc[df["treated"] == 1, "ps"]
@@ -269,11 +343,13 @@ def ps_overlap_plot(df: pd.DataFrame, out_path: Path) -> None:
 
     fig, ax = plt.subplots(figsize=(7, 4), dpi=150)
     bins = np.linspace(0, 1, 60)
-    ax.hist(c_ps, bins=bins, density=True, alpha=0.5, color="#2166ac", label="Never-treated (WFP ≥ 40)")
-    ax.hist(t_ps, bins=bins, density=True, alpha=0.65, color="#d6604d", label="Treated (fire 2015–17)")
-    ax.set_xlabel("Estimated propensity score (v2 model)")
+    ax.hist(c_ps, bins=bins, density=True, alpha=0.5, color="#2166ac",
+            label="Never-treated (caliper-trimmed)")
+    ax.hist(t_ps, bins=bins, density=True, alpha=0.65, color="#d6604d",
+            label="Treated (fire 2015–17)")
+    ax.set_xlabel("Estimated propensity score (WFP 2014 model)")
     ax.set_ylabel("Density")
-    ax.set_title("PS overlap: treated vs. WFP-restricted controls")
+    ax.set_title("PS overlap: treated vs. caliper-restricted controls")
     ax.legend(frameon=False)
     fig.tight_layout()
     fig.savefig(out_path, dpi=300, bbox_inches="tight")
@@ -281,36 +357,44 @@ def ps_overlap_plot(df: pd.DataFrame, out_path: Path) -> None:
     print(f"  [OK] PS overlap plot: {out_path.name}")
 
 
+# ── Main ──────────────────────────────────────────────────────────────────────
+
 def main() -> None:
     print("=" * 70)
-    print("PS-IPW MATCHING v2: Wildfire 2015–2017, WFP-restricted controls")
+    print("PS-IPW MATCHING v3: WFP 2014, PS caliper, CEM robustness")
     print("=" * 70)
     RESULTS.mkdir(parents=True, exist_ok=True)
 
     df = load_data()
-    df = apply_wfp_floor(df)
     df = drop_missing_ps(df)
-    df = common_support_trim(df)
+    df = apply_ps_caliper(df, caliper_sd=CALIPER_SD)
 
     bal = balance_table(df)
     print_balance(bal)
 
-    # Save
+    cem = compute_cem_weights(df)
+
+    # ── Save IPW outputs ──
     weights_out = df[["GISJOIN", "treated", "ps", "ipw_weight"]].copy()
     weights_out.to_parquet(PROCESSED / "ipw_weights.parquet", index=False)
     weights_out.to_csv(RESULTS / "ipw_weights.csv", index=False)
     bal.to_csv(RESULTS / "balance_table.csv", index=False)
     ps_overlap_plot(df, RESULTS / "ps_overlap.png")
 
-    # PS range summary
+    # ── Save CEM outputs ──
+    cem.to_parquet(PROCESSED / "cem_weights.parquet", index=False)
+    cem.to_csv(RESULTS / "cem_weights.csv", index=False)
+
+    # ── PS range summary ──
     t_ps = df.loc[df["treated"] == 1, "ps"]
     c_ps = df.loc[df["treated"] == 0, "ps"]
-    print(f"\nPS overlap (final):")
+    print(f"\nPS overlap (final, post-caliper):")
     print(f"  Treated:  [{t_ps.min():.3f}, {t_ps.max():.3f}]  mean={t_ps.mean():.3f}")
     print(f"  Controls: [{c_ps.min():.3f}, {c_ps.max():.3f}]  mean={c_ps.mean():.3f}")
 
     print(f"\n[OK] Saved:")
     print(f"     data/processed/ipw_weights.parquet  ({len(weights_out):,} rows)")
+    print(f"     data/processed/cem_weights.parquet   ({len(cem):,} rows)")
     print(f"     results/balance_table.csv")
     print(f"     results/ps_overlap.png")
 

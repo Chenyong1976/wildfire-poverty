@@ -496,20 +496,33 @@ Estimate TWFE event study on both. Owner-occupancy decline + vacancy increase �
 
 **Estimation complete as of 2026-08-16. Primary result: in-migration rate ATT = +0.92 pp (robust through HonestDiD M=1.5). Income and poverty effects not significant after smoke buffer correction.**
 
+**Design revision as of 2026-08-21: WFP 2014 as primary matching covariate (was WFP 2012); PS caliper added; CEM added; full balance table with all three WFP summaries; unweighted TWFE added as named robustness spec.**
+
+### Completed
 - ✓ Research design finalized (single clean cohort)
-- ✓ Identification strategy locked in
+- ✓ Identification strategy locked in; 7-point design revision incorporated
 - ✓ Data acquired and pipeline built (`code/01_build/` through `code/04_output/`)
-- ✓ Smoke buffer bug fixed (`02_fire_treatment.py`): never-treated 70,146 → 36,013 after correct 100km exclusion
+- ✓ Smoke buffer bug fixed (`02_fire_treatment.py`): never-treated 70,146 → 36,013 after correct 100 km exclusion
 - ✓ Main DiD estimated (`code/03_analysis/01_did_estimation.py`): ATTs for all 4 outcomes
-- ✓ Pre-trend tests run (`code/03_analysis/02_pretrend_tests.py`): income/poverty/migration PASS; employment FAIL (downgraded to robustness appendix)
+- ✓ Pre-trend tests (`code/03_analysis/02_pretrend_tests.py`): income/poverty/migration PASS; employment FAIL (downgraded to robustness appendix)
 - ✓ Robustness estimated (`code/03_analysis/03_robust_tests.R`): DR-TWFE, HonestDiD; in-migration breakdown M=1.5
 - ✓ Buffer × fire-size robustness (`code/03_analysis/04_robustness_specs.py`): Table 4 produced
-- ✓ Tables and figures generated (`code/04_output/01_tables_figures.py`): Table2/3, Figures 1–7
-- ⏳ **Next — Immediate**: Add `log_pop` and `log_mover_count` to `01_did_estimation.py`; estimate and add to Figure 4 (three-panel decomposition)
-- ⏳ **Next — Medium**: Request B25002/B25003 from NHGIS; add `owner_occ_rate` and `vacancy_rate` to panel; estimate and produce Figure 5
-- ⏳ **Next — Optional**: Download IRS SOI county migration tables; implement `code/03_analysis/05_irs_outmigration.py`
-- ⏳ PAP registration (note: estimation is already complete; registration now serves as documentation of pre-specified design)
-- ⏳ Paper writing: Introduction through Discussion not yet drafted; skill sequence: `/deep-research` → `/academic-paper` → `/academic-paper-reviewer`
+- ✓ Tables and figures generated (`code/04_output/01_tables_figures.py`): Table 1 (balance), Table 2 (main results), Table 3 (robustness with CEM-OLS column), Figures 1–7
+- ✓ Code updated for 7-point design revision: `03_matching_covariates.py`, `01_ipw_weights.py`, new `03_cem_matching.R`, `01_tables_figures.py`
+
+### Pending — Critical (must run before final results)
+- ⏳ **WFP 2014 data acquisition**: Download WFP 2014 raster from USFS LANDFIRE; place at `data/raw/whp_rasters/whp2014_cnt`; re-run `03_matching_covariates.py` to produce primary matching covariates
+- ⏳ **Re-run matching**: `code/02_matching/01_ipw_weights.py` (PS caliper v3); verify normalized difference < 0.25 post-caliper; inspect balance table (all three WFP summaries + RUCC)
+- ⏳ **CEM matching**: `code/02_matching/03_cem_matching.R`; compare CEM-OLS ATT to IPW-TWFE; add CEM column to Table 3
+- ⏳ **Re-run DiD and robustness** with new IPW weights; update Table 2 and event-study figures
+
+### Pending — Mechanism Decomposition
+- ⏳ Add `log_pop` and `log_mover_count` to `01_did_estimation.py`; estimate and add to Figure 4 (three-panel decomposition)
+- ⏳ Request B25002/B25003 from NHGIS; add `owner_occ_rate` and `vacancy_rate` to panel; estimate and produce Figure 5
+
+### Pending — Writing
+- ⏳ PAP registration (estimation complete; registration now serves as documentation)
+- ⏳ Paper writing: Introduction through Discussion; skill sequence: `/deep-research` → `/academic-paper` → `/academic-paper-reviewer`
 
 ---
 

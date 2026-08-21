@@ -1,11 +1,25 @@
 """
 Build matching covariates for PS-IPW weighting (2010-vintage census tracts).
 
-WFP 2012 raw scores are converted to percentile ranks (0–100) using the global
-CONUS pixel distribution before computing tract-level summaries.
+Primary WFP raster: WFP 2014 (predetermined before 2015 fire season).
+Secondary WFP raster: WFP 2012 (robustness check; available from wildfire-finance).
+
+Raw WFP scores are converted to percentile ranks (0–100) using the global CONUS
+pixel distribution before computing tract-level summaries.  Three summaries are
+computed for each vintage and all three are reported in the balance table:
+  (1) mean WFP percentile across tract pixels
+  (2) % tract area in each hazard quintile (Q1–Q5)
+  (3) distance (km) from tract centroid to nearest pixel > 75th pct
+
+WFP 2014 data source: USFS LANDFIRE — download from:
+  https://www.landfire.gov/version_comparison.php  (product: WHP 2014, ESRI Grid)
+  Expected local path: data/raw/whp_rasters/whp2014_cnt  (EPSG:5070, 270 m)
+  If WFP 2014 is unavailable, set WFP_2014_FILE = WFP_2012_FILE to use 2012 as
+  a placeholder and note the substitution in the paper.
 
 Inputs:
-  data/raw/whp_rasters/wfp2012_cnt                WFP 2012 ESRI Grid (EPSG:5070)
+  data/raw/whp_rasters/whp2014_cnt                WFP 2014 ESRI Grid (EPSG:5070) [primary]
+  data/raw/whp_rasters/wfp2012_cnt                WFP 2012 ESRI Grid (EPSG:5070) [robustness]
   data/raw/mtbs_perimeters/S_USA.MTBS_BURN_AREA_BOUNDARY.shp
   data/raw/tract_shapefiles/.../US_tract_2010.shp
   data/raw/rucc/ruralurbancodes2013.xls
@@ -14,12 +28,17 @@ Inputs:
 Output:
   data/processed/matching_covariates.parquet
     One row per 2010-vintage tract GISJOIN (lower-48, pop >= 500 in 2014 ACS).
-    Columns: GISJOIN, FIPS11, COUNTYFP, STATEFP,
-             wfp_mean_pct, wfp_q1_frac, wfp_q2_frac, wfp_q3_frac, wfp_q4_frac, wfp_q5_frac,
-             wfp_dist_km,
-             fire_pre2013, log_acres_pre2013,
-             pov_rate_2014, log_inc_2014, emp_rate_2014, pop_2014, mig_rate_2014,
-             rucc_2013
+    Primary WFP 2014 columns (used in PS model and balance table):
+      wfp_mean_pct, wfp_q1_frac, wfp_q2_frac, wfp_q3_frac, wfp_q4_frac, wfp_q5_frac,
+      wfp_dist_km
+    Robustness WFP 2012 columns (sensitivity check only):
+      wfp12_mean_pct, wfp12_q1_frac, wfp12_q2_frac, wfp12_q3_frac, wfp12_q4_frac,
+      wfp12_q5_frac, wfp12_dist_km
+    Other covariates:
+      GISJOIN, FIPS11, COUNTYFP, STATEFP,
+      fire_pre2013, log_acres_pre2013,
+      pov_rate_2014, log_inc_2014, emp_rate_2014, pop_2014, mig_rate_2014,
+      rucc_2013
 """
 
 import sys
@@ -40,7 +59,14 @@ ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
 PROCESSED = ROOT / "data" / "processed"
 
-WFP_FILE = RAW / "whp_rasters" / "wfp2012_cnt"
+# WFP 2014: primary matching covariate (predetermined before 2015 fire season).
+# Download from USFS LANDFIRE before running this script.
+WFP_2014_FILE = RAW / "whp_rasters" / "whp2014_cnt"
+# WFP 2012: robustness check; reuse from wildfire-finance symlink.
+WFP_2012_FILE = RAW / "whp_rasters" / "wfp2012_cnt"
+# Alias for backward-compatible internal calls
+WFP_FILE = WFP_2014_FILE
+
 MTBS_FILE = RAW / "mtbs_perimeters" / "S_USA.MTBS_BURN_AREA_BOUNDARY.shp"
 TRACT_FILE = (
     RAW / "tract_shapefiles"
@@ -67,9 +93,16 @@ PRE2013_YEARS = set(range(1984, 2013))  # 1984–2012 inclusive
 
 # ── WFP raster ────────────────────────────────────────────────────────────────
 
-def build_wfp_percentile_array() -> tuple[np.ndarray, object, float, float]:
+def build_wfp_percentile_array(
+    wfp_path: Path,
+    label: str = "WFP",
+) -> tuple[np.ndarray, object, float, float]:
     """
-    Read WFP 2012 raster and convert raw scores to percentile ranks (0–100).
+    Read a WFP raster and convert raw scores to percentile ranks (0–100).
+
+    Args:
+        wfp_path : path to the ESRI Grid raster (EPSG:5070)
+        label    : human-readable label for print statements (e.g. "WFP 2014")
 
     Returns:
         wfp_pct   : 2-D float32 array, NaN where nodata
@@ -77,13 +110,13 @@ def build_wfp_percentile_array() -> tuple[np.ndarray, object, float, float]:
         p75       : raw-score value at 75th percentile (for high-hazard mask)
         bins      : 101-element array of raw score quantile breakpoints
     """
-    print("Loading WFP 2012 raster ...")
-    with rasterio.open(WFP_FILE) as src:
+    print(f"Loading {label} raster from {wfp_path} ...")
+    with rasterio.open(wfp_path) as src:
         raw = src.read(1).astype(np.float32)
         nd = float(src.nodata)
         transform = src.transform
 
-    nodata_mask = raw == nd
+    nodata_mask = (raw == nd) if nd is not None else np.zeros_like(raw, dtype=bool)
     valid = raw[~nodata_mask]
     print(f"  Valid pixels: {len(valid):,}  |  raw range: {valid.min():.0f}–{valid.max():.0f}")
 
@@ -314,14 +347,48 @@ def load_rucc(tracts: gpd.GeoDataFrame) -> pd.DataFrame:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def _compute_wfp_summaries(
+    tracts_5070: gpd.GeoDataFrame,
+    wfp_path: Path,
+    label: str,
+    prefix: str,
+) -> pd.DataFrame:
+    """
+    Helper: compute all three WFP summaries for a given raster vintage.
+
+    Returns a DataFrame with columns:
+      GISJOIN, {prefix}mean_pct, {prefix}q[1-5]_frac, {prefix}dist_km
+    """
+    wfp_pct, wfp_transform, _, _ = build_wfp_percentile_array(wfp_path, label)
+
+    zs = compute_wfp_zonal_stats(tracts_5070, wfp_pct, wfp_transform)
+    dist_s = compute_wfp_distance(tracts_5070, wfp_pct, wfp_transform)
+
+    zs = zs.merge(
+        dist_s.rename(f"{prefix}dist_km").reset_index().rename(columns={"index": "GISJOIN"}),
+        on="GISJOIN", how="left",
+    )
+    del wfp_pct
+
+    # Rename generic names to prefixed names
+    rename_map = {
+        "wfp_mean_pct": f"{prefix}mean_pct",
+        "wfp_q1_frac":  f"{prefix}q1_frac",
+        "wfp_q2_frac":  f"{prefix}q2_frac",
+        "wfp_q3_frac":  f"{prefix}q3_frac",
+        "wfp_q4_frac":  f"{prefix}q4_frac",
+        "wfp_q5_frac":  f"{prefix}q5_frac",
+    }
+    zs = zs.rename(columns=rename_map)
+    return zs
+
+
 def main() -> None:
     print("=" * 70)
-    print("MATCHING COVARIATES: WFP 2012 + Pre-2013 Fire + ACS 2014 + RUCC")
+    print("MATCHING COVARIATES: WFP 2014 (primary) + WFP 2012 (robustness)")
+    print("                   + Pre-2013 Fire + ACS 2014 + RUCC")
     print("=" * 70)
     PROCESSED.mkdir(parents=True, exist_ok=True)
-
-    # ── WFP raster ──
-    wfp_pct, wfp_transform, p75_raw, bins = build_wfp_percentile_array()
 
     # ── Tract boundaries in WFP CRS (EPSG:5070) ──
     print("\nLoading 2010-vintage tract boundaries ...")
@@ -330,18 +397,32 @@ def main() -> None:
     tracts_5070 = tracts_raw[["GISJOIN", "STATEFP10", "COUNTYFP10", "geometry"]].to_crs(WFP_CRS)
     print(f"  Tracts: {len(tracts_5070):,}")
 
-    # ── WFP zonal stats ──
-    wfp_df = compute_wfp_zonal_stats(tracts_5070, wfp_pct, wfp_transform)
-
-    # ── WFP distance ──
-    dist_s = compute_wfp_distance(tracts_5070, wfp_pct, wfp_transform)
-    wfp_df = wfp_df.merge(
-        dist_s.rename("wfp_dist_km").reset_index().rename(columns={"index": "GISJOIN"}),
-        on="GISJOIN", how="left",
+    # ── WFP 2014 (primary) ──
+    print("\n" + "─" * 60)
+    print("WFP 2014 — primary matching covariate")
+    print("─" * 60)
+    if not WFP_2014_FILE.exists():
+        raise FileNotFoundError(
+            f"WFP 2014 raster not found at {WFP_2014_FILE}.\n"
+            "Download from USFS LANDFIRE (WHP 2014, ESRI Grid) and place at\n"
+            f"  {WFP_2014_FILE}\n"
+            "or symlink to an existing download."
+        )
+    wfp14_df = _compute_wfp_summaries(
+        tracts_5070, WFP_2014_FILE, label="WFP 2014", prefix="wfp_"
     )
 
-    # Free raster memory
-    del wfp_pct
+    # ── WFP 2012 (robustness) ──
+    print("\n" + "─" * 60)
+    print("WFP 2012 — robustness check")
+    print("─" * 60)
+    if WFP_2012_FILE.exists():
+        wfp12_df = _compute_wfp_summaries(
+            tracts_5070, WFP_2012_FILE, label="WFP 2012", prefix="wfp12_"
+        )
+    else:
+        print(f"  [INFO] WFP 2012 not found at {WFP_2012_FILE}; skipping robustness columns.")
+        wfp12_df = tracts_5070[["GISJOIN"]].copy()
 
     # ── Pre-2013 fire history ──
     fire_df = compute_pre2013_fires(tracts_raw)
@@ -361,7 +442,8 @@ def main() -> None:
     print("\nMerging all covariate sets ...")
     covs = (
         ids
-        .merge(wfp_df, on="GISJOIN", how="left")
+        .merge(wfp14_df, on="GISJOIN", how="left")
+        .merge(wfp12_df, on="GISJOIN", how="left")
         .merge(fire_df, on="GISJOIN", how="left")
         .merge(acs_df, on="GISJOIN", how="left")
         .merge(rucc_df, on="GISJOIN", how="left")
@@ -382,7 +464,8 @@ def main() -> None:
 
     print("\nCovariate coverage (non-null share):")
     check_cols = [
-        "wfp_mean_pct", "wfp_q1_frac", "wfp_dist_km",
+        "wfp_mean_pct", "wfp_q1_frac", "wfp_q5_frac", "wfp_dist_km",
+        "wfp12_mean_pct",
         "fire_pre2013", "log_acres_pre2013",
         "pov_rate_2014", "log_inc_2014", "emp_rate_2014",
         "mig_rate_2014", "rucc_2013",
@@ -392,16 +475,22 @@ def main() -> None:
             pct = covs[col].notna().mean() * 100
             print(f"  {col:<25}: {pct:.1f}%")
 
-    print("\nWFP summary (treated fire tracts vs. all):")
+    # Normalized difference in WFP 2014 between treated and controls
     fire_path = PROCESSED / "fire_treatment_tracts.parquet"
     if fire_path.exists():
         fire = pd.read_parquet(fire_path, columns=["GISJOIN", "treated"])
         covs_t = covs.merge(fire, on="GISJOIN", how="left")
-        for grp, label in [(1, "Treated"), (0, "Non-treated")]:
+        print("\nWFP 2014 balance check (treated vs. never-treated):")
+        for grp, label in [(1, "Treated"), (0, "Never-treated")]:
             sub = covs_t[covs_t["treated"] == grp]
             print(f"  {label} (n={len(sub):,}): mean WFP pct = {sub['wfp_mean_pct'].mean():.1f}  "
                   f"q5_frac = {sub['wfp_q5_frac'].mean():.3f}  "
                   f"dist_km = {sub['wfp_dist_km'].mean():.1f}")
+        t = covs_t[covs_t["treated"] == 1]["wfp_mean_pct"]
+        c = covs_t[covs_t["treated"] == 0]["wfp_mean_pct"]
+        nd = (t.mean() - c.mean()) / t.std()
+        print(f"  Normalized difference (mean WFP 2014): {nd:.3f}"
+              f"  {'[HIGH: apply PS caliper]' if abs(nd) > 0.25 else '[OK]'}")
 
 
 if __name__ == "__main__":

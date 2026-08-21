@@ -2,8 +2,9 @@
 Publication-ready tables and figures for wildfire-poverty event study.
 
 Outputs (results/tables/ and results/figures/):
+  table1_balance.tex          Covariate balance: all matching variables, pre/post IPW
   table2_main_results.tex     Event-study ATT across outcomes (Table 2 in paper)
-  table3_robustness.tex       Robustness comparison: unweighted / IPW / DR-TWFE / HonestDiD
+  table3_robustness.tex       Robustness: unweighted / IPW / CEM-OLS / DR-TWFE / HonestDiD
   fig1_es_income.png/.pdf     Event-study: log median income (primary outcome)
   fig2_es_income_no_h3.png    Sensitivity: drop h=-3 (income)
   fig3_es_poverty.png/.pdf    Event-study: poverty rate (secondary)
@@ -111,7 +112,9 @@ def load_all() -> dict:
     wald = pd.read_csv(RES / "wald_tests_R.csv")
     hd   = {nm: pd.read_csv(RES / f"honestdid_{nm}.csv") for nm in OUTCOMES}
     es   = {nm: load_es(nm) for nm in OUTCOMES}
-    return dict(att=att, dr=dr, wald=wald, hd=hd, es=es)
+    bal  = pd.read_csv(RES / "balance_table.csv") if (RES / "balance_table.csv").exists() else pd.DataFrame()
+    cem  = pd.read_csv(RES / "cem_att_estimates.csv") if (RES / "cem_att_estimates.csv").exists() else pd.DataFrame()
+    return dict(att=att, dr=dr, wald=wald, hd=hd, es=es, bal=bal, cem=cem)
 
 
 # ── Formatting helpers ────────────────────────────────────────────────────────
@@ -134,6 +137,108 @@ def stars(pval) -> str:
     if pval < 0.05:  return "^{**}"
     if pval < 0.10:  return "^{*}"
     return ""
+
+
+# ── TABLE 1: Covariate balance ────────────────────────────────────────────────
+
+# Human-readable labels for balance-table covariates
+BAL_LABELS = {
+    "wfp_mean_pct":       "Mean WFP 2014 percentile (0–100)",
+    "wfp_q1_frac":        "\\% area WFP Q1 (0–20th pct)",
+    "wfp_q2_frac":        "\\% area WFP Q2 (20–40th pct)",
+    "wfp_q3_frac":        "\\% area WFP Q3 (40–60th pct)",
+    "wfp_q4_frac":        "\\% area WFP Q4 (60–80th pct)",
+    "wfp_q5_frac":        "\\% area WFP Q5 (80–100th pct)",
+    "log_wfp_dist_km":    "Log distance to high-hazard pixel (km)",
+    "wfp12_mean_pct":     "Mean WFP 2012 percentile [robustness]",
+    "fire_pre2013":       "Any fire 1984–2012 (binary)",
+    "log_acres_pre2013":  "Log pre-2013 acres burned",
+    "pov_rate_2014":      "Poverty rate (2014)",
+    "log_inc_2014":       "Log median HH income (2014)",
+    "emp_rate_2014":      "Employment rate (2014)",
+    "log_pop_2014":       "Log population (2014)",
+    "mig_rate_2014":      "In-migration rate (2014)",
+    "rucc_2013":          "RUCC 2013 (1=metro core, 9=remote rural)",
+}
+
+
+def make_table1_balance(data: dict) -> str:
+    """
+    Table 1: Pre- and post-IPW covariate balance.
+    Columns: Treated mean | Control mean (raw) | Control mean (IPW-wtd) | SMD before | SMD after.
+    Rows: all matching variables (WFP 2014 × 3, WFP 2012 mean, fire history, ACS socioeconomic, RUCC).
+    """
+    bal = data.get("bal", pd.DataFrame())
+    if bal.empty:
+        return "% balance_table.csv not found — run 01_ipw_weights.py first\n"
+
+    lines = []
+    lines.append(r"\begin{table}[htbp]")
+    lines.append(r"\centering")
+    lines.append(r"\small")
+    lines.append(r"\caption{Covariate Balance: Treated vs.\ Never-Treated (Pre- and Post-IPW)}")
+    lines.append(r"\label{tab:balance}")
+    lines.append(r"\begin{tabular}{lrrrrr}")
+    lines.append(r"\toprule")
+    lines.append(r"Covariate & Treated & Control & Control & SMD & SMD \\")
+    lines.append(r"          & mean    & (raw)   & (IPW-wtd.) & before & after \\")
+    lines.append(r"\midrule")
+    lines.append(r"\multicolumn{6}{l}{\textit{Panel A: WFP 2014 raster summaries (primary matching covariate)}} \\[2pt]")
+
+    wfp14_vars = [
+        "wfp_mean_pct", "wfp_q1_frac", "wfp_q2_frac",
+        "wfp_q3_frac",  "wfp_q4_frac", "wfp_q5_frac",
+        "log_wfp_dist_km",
+    ]
+    rob_vars   = ["wfp12_mean_pct"]
+    fire_vars  = ["fire_pre2013", "log_acres_pre2013"]
+    soc_vars   = ["pov_rate_2014", "log_inc_2014", "emp_rate_2014",
+                  "log_pop_2014", "mig_rate_2014", "rucc_2013"]
+
+    panels = [
+        (wfp14_vars, None),
+        (rob_vars,   r"\multicolumn{6}{l}{\textit{Panel B: WFP 2012 (robustness check)}} \\[2pt]"),
+        (fire_vars,  r"\multicolumn{6}{l}{\textit{Panel C: Pre-2013 fire history}} \\[2pt]"),
+        (soc_vars,   r"\multicolumn{6}{l}{\textit{Panel D: ACS 2014 socioeconomic covariates and RUCC}} \\[2pt]"),
+    ]
+
+    for group_vars, panel_header in panels:
+        if panel_header:
+            lines.append(r"\midrule")
+            lines.append(panel_header)
+        for var in group_vars:
+            row = bal[bal["covariate"] == var]
+            if row.empty:
+                continue
+            r = row.iloc[0]
+            label  = BAL_LABELS.get(var, var)
+            in_m   = r.get("in_ps_model", "")
+            marker = r"${}^{\dagger}$" if "yes" in str(in_m) else ""
+            flag   = "" if abs(r["smd_after"]) < 0.1 else r" \textbf{[!!]}"
+            lines.append(
+                f"\\quad {label}{marker} & {r['mean_treated']:.3f} & "
+                f"{r['mean_ctrl_raw']:.3f} & {r['mean_ctrl_wtd']:.3f} & "
+                f"{r['smd_before']:.3f} & {r['smd_after']:.3f}{flag} \\\\"
+            )
+
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(r"\begin{tablenotes}")
+    lines.append(r"\small")
+    lines.append(
+        r"\item \textit{Notes:} Lower-48 US census tracts; treated = any MTBS fire $\geq 1{,}000$ acres "
+        r"in 2015--2017; never-treated = no fires 2013--2023, outside 100\,km smoke buffer. "
+        r"IPW-wtd.\ = inverse-probability weighted using propensity scores estimated by logistic "
+        r"regression with PS caliper ($\pm 0.20$ SD of treated PS; Cochran \& Rubin 1973). "
+        r"${}^{\dagger}$ variable included in propensity-score model. "
+        r"SMD = standardized mean difference = (treated mean $-$ control mean) / treated SD. "
+        r"Target: $|$SMD$| < 0.10$ post-weighting. "
+        r"RUCC 2013: USDA rural-urban continuum code (1 = metro core, 9 = most remote rural). "
+        r"WFP 2012 column is a robustness check; WFP 2014 is the primary matching covariate."
+    )
+    lines.append(r"\end{tablenotes}")
+    lines.append(r"\end{table}")
+    return "\n".join(lines)
 
 
 # ── TABLE 2: Main event-study results ─────────────────────────────────────────
@@ -266,8 +371,8 @@ def make_table2(data: dict) -> str:
     lines.append(r"$h \in \{-3,-2,-1,0,+1,+2\}$ corresponding to ACS 2010, 2012, 2014 (reference),")
     lines.append(r"2022, 2023, 2024. Treated = any MTBS fire $\geq 1{,}000$ acres in 2015--2017.")
     lines.append(r"Control = never-treated tracts (no fires 2013--2023, outside 100\,km smoke buffer).")
-    lines.append(r"Unweighted: $N \approx 69{,}700$ tracts $\times$ 6 periods.")
-    lines.append(r"IPW-weighted: WFP-2012-restricted common-support sample.")
+    lines.append(r"Unweighted: $N \approx 69{,}700$ tracts $\times$ 6 periods (no matching weights).")
+    lines.append(r"IPW-weighted: WFP-2014 propensity-score reweighted, PS caliper $\pm 0.20$ SD.")
     lines.append(r"Income scaled to percentage points (log unit $\approx$\% for small changes).")
     lines.append(r"$h=-3$ uses 2000-vintage tract boundaries (auxiliary pre-trend check).")
     lines.append(r"*** $p<0.01$, ** $p<0.05$, * $p<0.10$ (clustered by county).")
@@ -281,13 +386,13 @@ def make_table2(data: dict) -> str:
 
 def make_table3(data: dict) -> str:
     """
-    Robustness: unweighted / IPW / DR-TWFE ATTs + HonestDiD CI at M=0, M=0.5, breakdown M.
+    Robustness: unweighted TWFE / IPW-TWFE / CEM-OLS / DR-TWFE + HonestDiD.
     Rows = primary outcomes; columns = specifications.
     """
     att_df = data["att"]
     dr_df  = data["dr"]
+    cem_df = data.get("cem", pd.DataFrame())
 
-    # Primary outcomes only (income + migration as clearest results)
     outcomes_rob = ["log_med_income_2020", "poverty_rate", "in_migration_rate", "employment_rate"]
 
     lines = []
@@ -296,10 +401,10 @@ def make_table3(data: dict) -> str:
     lines.append(r"\small")
     lines.append(r"\caption{Robustness: Alternative Specifications and Sensitivity Analysis}")
     lines.append(r"\label{tab:robustness}")
-    lines.append(r"\begin{tabular}{lrrrrrr}")
+    lines.append(r"\begin{tabular}{lrrrrrrr}")
     lines.append(r"\toprule")
-    lines.append(r"Outcome & Unweighted & IPW-wtd. & DR-TWFE & HonestDiD & HonestDiD & Breakdown \\")
-    lines.append(r"        & ATT        & ATT      & ATT     & CI (M=0)   & CI (M=0.5) & $\bar{M}$ \\")
+    lines.append(r"Outcome & Unwtd. & IPW-wtd. & CEM-OLS & DR-TWFE & HonestDiD & HonestDiD & Breakdown \\")
+    lines.append(r"        & ATT    & ATT      & ATT     & ATT     & CI (M=0)  & CI (M=0.5) & $\bar{M}$ \\")
     lines.append(r"\midrule")
 
     for nm in outcomes_rob:
@@ -307,45 +412,50 @@ def make_table3(data: dict) -> str:
         dig = 4 if nm == "log_med_income_2020" else 3
         fmt = f"{{:.{dig}f}}"
 
-        uw_row = att_df[(att_df["outcome"] == nm) & (att_df["spec"] == "unweighted")]
-        ip_row = att_df[(att_df["outcome"] == nm) & (att_df["spec"] == "ipw")]
-        dr_row = dr_df[dr_df["outcome"] == nm]
-        hd     = data["hd"].get(nm, pd.DataFrame())
+        uw_row  = att_df[(att_df["outcome"] == nm) & (att_df["spec"] == "unweighted")]
+        ip_row  = att_df[(att_df["outcome"] == nm) & (att_df["spec"] == "ipw")]
+        dr_row  = dr_df[dr_df["outcome"] == nm]
+        cem_row = cem_df[cem_df["outcome"] == nm] if not cem_df.empty else pd.DataFrame()
+        hd      = data["hd"].get(nm, pd.DataFrame())
 
-        uw_val = f"${fmt.format(uw_row['att'].values[0]*sc)}$" if not uw_row.empty else "---"
-        ip_val = f"${fmt.format(ip_row['att'].values[0]*sc)}$" if not ip_row.empty else "---"
-        dr_val = f"${fmt.format(dr_row['att'].values[0]*sc)}$" if not dr_row.empty else "---"
+        uw_val  = f"${fmt.format(uw_row['att'].values[0]*sc)}$"  if not uw_row.empty  else "---"
+        ip_val  = f"${fmt.format(ip_row['att'].values[0]*sc)}$"  if not ip_row.empty  else "---"
+        cem_val = f"${fmt.format(cem_row['att'].values[0]*sc)}$" if not cem_row.empty else "---"
+        dr_val  = f"${fmt.format(dr_row['att'].values[0]*sc)}$"  if not dr_row.empty  else "---"
 
         if not hd.empty and "lb" in hd.columns:
-            m0  = hd[hd["Mbar"] == 0.0]
-            m05 = hd[hd["Mbar"] == 0.5]
-            ci0  = f"$[{fmt.format(m0['lb'].values[0]*sc)},\\, {fmt.format(m0['ub'].values[0]*sc)}]$"  if not m0.empty  else "---"
+            m0   = hd[hd["Mbar"] == 0.0]
+            m05  = hd[hd["Mbar"] == 0.5]
+            ci0  = f"$[{fmt.format(m0['lb'].values[0]*sc)},\\, {fmt.format(m0['ub'].values[0]*sc)}]$"   if not m0.empty  else "---"
             ci05 = f"$[{fmt.format(m05['lb'].values[0]*sc)},\\, {fmt.format(m05['ub'].values[0]*sc)}]$" if not m05.empty else "---"
-            # Breakdown M = smallest M where 0 is in CI
             zero_in = hd[(hd["lb"] <= 0) & (hd["ub"] >= 0)]
             bm = f"${zero_in['Mbar'].min():.1f}$" if not zero_in.empty else "$> 2.0$"
         else:
             ci0 = ci05 = bm = "---"
 
         label = OUTCOMES[nm]["label"]
-        lines.append(f"{label} & {uw_val} & {ip_val} & {dr_val} & {ci0} & {ci05} & {bm} \\\\")
+        lines.append(
+            f"{label} & {uw_val} & {ip_val} & {cem_val} & {dr_val} & {ci0} & {ci05} & {bm} \\\\"
+        )
 
     lines.append(r"\midrule")
-    lines.append(r"\multicolumn{7}{l}{\textit{Specification details:}} \\")
-    lines.append(r"Unweighted & \multicolumn{6}{l}{All never-treated tracts as controls; no reweighting} \\")
-    lines.append(r"IPW-wtd.   & \multicolumn{6}{l}{WFP-2012 propensity-score reweighted, common-support sample} \\")
-    lines.append(r"DR-TWFE    & \multicolumn{6}{l}{Baseline covariates $\times$ year interactions (pov.\ rate, log income, WFP, emp.\ rate)} \\")
-    lines.append(r"HonestDiD  & \multicolumn{6}{l}{Rambachan--Roth (2023) $\Delta_{\rm RM}$ sensitivity; $M$ = max.\ pre-trend violation / max.\ $|\hat\beta_{h<0}|$} \\")
+    lines.append(r"\multicolumn{8}{l}{\textit{Specification details:}} \\")
+    lines.append(r"Unwtd.    & \multicolumn{7}{l}{All never-treated tracts; no weights (reveals raw selection bias vs.\ IPW)} \\")
+    lines.append(r"IPW-wtd.  & \multicolumn{7}{l}{WFP-2014-based PS logit; caliper $\pm 0.20$ SD; weights trimmed at 95th pct} \\")
+    lines.append(r"CEM-OLS   & \multicolumn{7}{l}{Coarsened exact matching on WFP 2014 quintile $\times$ pre-2013 fire history; OLS} \\")
+    lines.append(r"DR-TWFE   & \multicolumn{7}{l}{Doubly-robust: baseline covariates $\times$ year interactions} \\")
+    lines.append(r"HonestDiD & \multicolumn{7}{l}{Rambachan--Roth (2023) $\Delta_{\rm RM}$; $M$ = max.\ violation / max.\ $|\hat\beta_{h<0}|$} \\")
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
     lines.append(r"\begin{tablenotes}")
     lines.append(r"\small")
-    lines.append(r"\item \textit{Notes:} ATT = simple average of $\hat\beta_0 + \hat\beta_{+1} + \hat\beta_{+2}$.")
-    lines.append(r"HonestDiD CIs are ``honest'' confidence intervals that remain valid under")
-    lines.append(r"violations of parallel trends of magnitude $\leq M$.")
-    lines.append(r"Breakdown $\bar{M}$: smallest $M$ at which the honest CI contains zero.")
-    lines.append(r"Income units: log points (approximately percent); all other outcomes: percentage points.")
-    lines.append(r"IPW income and in-migration ATTs reverse sign vs.\ unweighted; see text for discussion.")
+    lines.append(r"\item \textit{Notes:} ATT = simple average of $\hat\beta_0 + \hat\beta_{+1} + \hat\beta_{+2}$. "
+                 r"Comparing Unwtd.\ to IPW-wtd.\ quantifies selection bias corrected by matching. "
+                 r"CEM-OLS provides a non-parametric robustness check with exact balance on WFP quintile. "
+                 r"HonestDiD CIs are valid under trend violations of magnitude $\leq M$. "
+                 r"Breakdown $\bar{M}$: smallest $M$ at which the honest CI includes zero. "
+                 r"Income: log points ($\approx$\% for small changes); other outcomes: percentage points. "
+                 r"SE clustered by county in all specifications.")
     lines.append(r"\end{tablenotes}")
     lines.append(r"\end{table}")
 
@@ -478,6 +588,10 @@ def main() -> None:
 
     # ── Tables ────────────────────────────────────────────────────────────────
     print("\nGenerating LaTeX tables ...")
+
+    tex1 = make_table1_balance(data)
+    (TABS / "table1_balance.tex").write_text(tex1, encoding="utf-8")
+    print("  [OK] results/tables/table1_balance.tex")
 
     tex2 = make_table2(data)
     (TABS / "table2_main_results.tex").write_text(tex2, encoding="utf-8")
